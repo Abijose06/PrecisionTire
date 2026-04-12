@@ -1,8 +1,9 @@
-﻿using System;
-using System.Linq;
-using System.Web.Http;
+﻿using Core.Helpers;
 using Core.Models;
-using Core.Helpers;
+using System;
+using System.Linq;
+using System.Net;
+using System.Web.Http;
 
 namespace Core.Controllers
 {
@@ -84,80 +85,46 @@ namespace Core.Controllers
         [Route("login")]
         public IHttpActionResult Login(LoginRequest request)
         {
-            if (request == null || string.IsNullOrEmpty(request.Documento) || string.IsNullOrEmpty(request.Password))
-                return BadRequest("Debe enviar el documento y la contraseña.");
-
             try
             {
-                var usuarioDb = db.Usuarios.FirstOrDefault(u => u.Documento == request.Documento);
+                // 1. Buscamos el usuario por Tipo y Número de documento
+                var usuario = db.Usuarios.FirstOrDefault(u =>
+                    u.TipoDocumento == request.TipoDocumento &&
+                    u.Documento == request.Documento &&
+                    u.Estado == true);
 
-                if (usuarioDb == null)
+                // 2. Si no existe o la clave (hasheada) no coincide, fuera.
+                if (usuario == null || !SeguridadHelper.VerificarHash(request.Password, usuario.ClaveHash))
                 {
-                    log.Warn($"Intento de login con documento inexistente: {request.Documento}");
-                    return NotFound();
+                    return Content(HttpStatusCode.Unauthorized, "Credenciales incorrectas.");
                 }
 
-                if (!usuarioDb.Estado)
-                {
-                    log.Warn($"Intento de login a cuenta inactiva. Documento: {request.Documento}");
-                    return BadRequest("Este usuario está inactivo.");
-                }
-
-                bool claveCorrecta = SeguridadHelper.VerificarPassword(request.Password, usuarioDb.ClaveHash);
-
-                if (!claveCorrecta)
-                {
-                    // Alerta de seguridad para detectar posibles ataques de fuerza bruta
-                    log.Warn($"Contraseña incorrecta. Documento: {request.Documento}");
-                    return Unauthorized();
-                }
-
-                log.Info($"Login exitoso. Usuario ID: {usuarioDb.IdUsuario}, Rol: {usuarioDb.Rol}");
-
-                // --- NUEVO: Inteligencia de Roles (Cliente vs Empleado) ---
-                int? idClienteReal = null;
-                int? idEmpleadoReal = null;
-                int? idSucursalReal = null;
-
-                string rol = usuarioDb.Rol.ToLower();
-
-                if (rol == "cliente" || rol == "clienteweb")
-                {
-                    idClienteReal = db.Database.SqlQuery<int?>(
-                        "SELECT IdCliente FROM tblCliente WHERE IdUsuario = @p0", usuarioDb.IdUsuario).FirstOrDefault();
-                }
-                else if (rol == "cajero" || rol == "administrador")
-                {
-                    // Buscamos los datos del empleado y su sucursal
-                    var datosEmpleado = db.Database.SqlQuery<DatosEmpleadoDTO>(
-                        "SELECT IdEmpleado, IdSucursal FROM tblEmpleado WHERE IdUsuario = @p0", usuarioDb.IdUsuario).FirstOrDefault();
-
-                    if (datosEmpleado != null)
-                    {
-                        idEmpleadoReal = datosEmpleado.IdEmpleado;
-                        idSucursalReal = datosEmpleado.IdSucursal;
-                    }
-                }
-
-                log.Info($"Login exitoso. Usuario ID: {usuarioDb.IdUsuario}, Rol: {usuarioDb.Rol}");
+                // 3. Buscamos si es Cliente o Empleado para devolver el perfil completo
+                var cliente = db.Clientes.FirstOrDefault(c => c.IdUsuario == usuario.IdUsuario);
+                var empleado = db.Database.SqlQuery<EmpleadoLoginDTO>(
+                    "SELECT IdEmpleado, IdSucursal FROM tblEmpleado WHERE IdUsuario = @p0",
+                    usuario.IdUsuario).FirstOrDefault();
 
                 return Ok(new
                 {
-                    IdUsuario = usuarioDb.IdUsuario,
-                    IdCliente = idClienteReal,     // Se llena si es cliente
-                    IdEmpleado = idEmpleadoReal,   // Se llena si es empleado
-                    IdSucursal = idSucursalReal,   // Vital para que la Caja sepa de dónde descontar inventario
-                    NombreCompleto = usuarioDb.Nombres + " " + usuarioDb.Apellidos,
-                    Rol = usuarioDb.Rol,
-                    Token = Guid.NewGuid().ToString()
+                    IdUsuario = usuario.IdUsuario,
+                    IdCliente = cliente?.IdCliente,
+                    IdEmpleado = empleado?.IdEmpleado,
+                    IdSucursal = empleado?.IdSucursal,
+                    NombreCompleto = usuario.Nombres + " " + usuario.Apellidos,
+                    Rol = usuario.Rol,
+                    Token = "TOKEN-SIMULADO-" + Guid.NewGuid().ToString() // Aquí iría un JWT real
                 });
             }
             catch (Exception ex)
             {
-                log.Error($"Error de sistema durante el intento de login del documento {request.Documento}", ex);
-                return InternalServerError(new Exception("Error interno al procesar el inicio de sesión."));
+                log.Error("Error en Login", ex);
+                return InternalServerError(new Exception("Error al procesar el inicio de sesión."));
             }
         }
+
+        // Clase auxiliar para el query de empleado
+        private class EmpleadoLoginDTO { public int IdEmpleado { get; set; } public int IdSucursal { get; set; } }
         // Ruta: GET api/usuarios/buscar/{documento}
         [HttpGet]
         [Route("buscar/{documento}")]
@@ -198,6 +165,7 @@ namespace Core.Controllers
 
     public class LoginRequest
     {
+        public int TipoDocumento { get; set; }
         public string Documento { get; set; }
         public string Password { get; set; }
     }

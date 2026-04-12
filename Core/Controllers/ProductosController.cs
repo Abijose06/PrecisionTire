@@ -48,6 +48,26 @@ namespace Core.Controllers
             base.Dispose(disposing);
         }
 
+        // Agregar a ProductosController.cs
+        [HttpGet]
+        [Route("buscar")]
+        public IHttpActionResult BuscarProductos(int idSucursal, string filtro = "", string medida = "")
+        {
+            string sql = @"
+        SELECT p.*, i.StockActual 
+        FROM tblProducto p
+        JOIN tblInventario i ON p.IdProducto = i.IdProducto
+        WHERE i.IdSucursal = @p0 AND p.Estado = 1";
+
+            if (!string.IsNullOrEmpty(filtro))
+                sql += " AND (p.Marca LIKE '%' + @p1 + '%' OR p.Modelo LIKE '%' + @p1 + '%')";
+
+            if (!string.IsNullOrEmpty(medida))
+                sql += " AND p.Medida = @p2";
+
+            var resultados = db.Database.SqlQuery<ProductoConStockDTO>(sql, idSucursal, filtro, medida).ToList();
+            return Ok(resultados);
+        }
 
 
         // Clase auxiliar para devolver el producto + stock
