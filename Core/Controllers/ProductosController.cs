@@ -48,6 +48,8 @@ namespace Core.Controllers
             base.Dispose(disposing);
         }
 
+
+
         // Clase auxiliar para devolver el producto + stock
         public class ProductoConStockDTO
         {
