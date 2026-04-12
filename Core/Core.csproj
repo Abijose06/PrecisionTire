@@ -190,9 +190,9 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="App_Data\GomasDB.mdf" />
-    <Content Include="App_Data\GomasDB_log.ldf">
-      <DependentUpon>GomasDB.mdf</DependentUpon>
+    <Content Include="App_Data\GomasDB_Master.mdf" />
+    <Content Include="App_Data\GomasDB_Master_log.ldf">
+      <DependentUpon>GomasDB_Master.mdf</DependentUpon>
     </Content>
     <Content Include="Areas\HelpPage\HelpPage.css" />
     <Content Include="Content\bootstrap-grid.css" />
