@@ -1,7 +1,4 @@
 <Solution>
-  <Folder Name="/Solution Items/">
-    <File Path=".gitignore" />
-  </Folder>
   <Project Path="Caja/CajaGomasPOS/Caja.csproj" Id="40a17b8f-db67-4886-8af5-df305c116291" />
   <Project Path="Core/Core.csproj" Id="4073d341-5831-425d-a17c-0f0410f28a54" />
   <Project Path="Integracion/Integracion.csproj" Id="06dea644-9b05-43d9-b54c-1e40094b3845" />
