@@ -8,10 +8,10 @@ namespace Core.Models
     {
         public GomasContext() : base("name=GomasContext")
         {
+            Database.SetInitializer<GomasContext>(null);
         }
 
         public DbSet<Usuario> Usuarios { get; set; }
-
         public DbSet<Cliente> Clientes { get; set; }
         public DbSet<Empleado> Empleados { get; set; }
         public DbSet<Producto> Productos { get; set; }
