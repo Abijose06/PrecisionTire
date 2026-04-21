@@ -89,15 +89,17 @@ namespace Core.Controllers
             {
                 // 1. Buscamos el usuario por Tipo y Número de documento
                 var usuario = db.Usuarios.FirstOrDefault(u =>
-                    u.TipoDocumento == request.TipoDocumento &&
-                    u.Documento == request.Documento &&
-                    u.Estado == true);
+                      u.Correo == request.Correo &&
+                      u.Estado == true);
 
                 // 2. Si no existe o la clave (hasheada) no coincide, fuera.
-                if (usuario == null || !SeguridadHelper.VerificarHash(request.Password, usuario.ClaveHash))
-                {
-                    return Content(HttpStatusCode.Unauthorized, "Credenciales incorrectas.");
-                }
+                string hashIngresado = SeguridadHelper.CalcularHash(request.Password);
+
+                // Comparamos el hash que acaba de generar con el que está en la base de datos
+                if (usuario == null || !SeguridadHelper.VerificarHash(request.Password, usuario.ClaveHash.Trim().ToLower()))
+{
+    return Content(HttpStatusCode.Unauthorized, "Credenciales incorrectas.");
+}
 
                 // 3. Buscamos si es Cliente o Empleado para devolver el perfil completo
                 var cliente = db.Clientes.FirstOrDefault(c => c.IdUsuario == usuario.IdUsuario);
@@ -187,8 +189,7 @@ namespace Core.Controllers
 
     public class LoginRequest
     {
-        public int TipoDocumento { get; set; }
-        public string Documento { get; set; }
+        public string Correo { get; set; }
         public string Password { get; set; }
     }
 

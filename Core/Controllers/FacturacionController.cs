@@ -179,19 +179,6 @@ namespace Core.Controllers
         }
 
 
-        [HttpGet]
-        [Route("historial/{idCliente}")]
-        public IHttpActionResult HistorialCliente(int idCliente)
-        {
-            var historial = db.Database.SqlQuery<FacturaHistorialDTO>(@"
-        SELECT IdFactura, Fecha, TotalGeneral, EstadoFactura 
-        FROM tblFactura 
-        WHERE IdCliente = @p0 ORDER BY Fecha DESC",
-                idCliente).ToList();
-
-            return Ok(historial);
-        }
-
         public class FacturaHistorialDTO
         {
             public int IdFactura { get; set; }
@@ -200,20 +187,7 @@ namespace Core.Controllers
             public string EstadoFactura { get; set; }
         }
 
-        [HttpGet]
-        [Route("detalle/{idFactura}")]
-        public IHttpActionResult DetalleFactura(int idFactura)
-        {
-            var detalles = db.Database.SqlQuery<DetalleItemDTO>(@"
-        SELECT d.TipoItem, p.Marca, p.Modelo, s.NombreServicio, d.Cantidad, d.PrecioUnitario, d.SubTotal
-        FROM tblDetalle_Factura d
-        LEFT JOIN tblProducto p ON d.IdProducto = p.IdProducto
-        LEFT JOIN tblServicio s ON d.IdServicio = s.IdServicio
-        WHERE d.IdFactura = @p0",
-                idFactura).ToList();
-
-            return Ok(detalles);
-        }
+        
 
         [HttpGet]
         [Route("resumen/{idSucursal}")]
@@ -232,13 +206,7 @@ namespace Core.Controllers
 
     }
 
-    public class FacturaHistorialDTO
-    {
-        public int IdFactura { get; set; }
-        public DateTime Fecha { get; set; }
-        public decimal TotalGeneral { get; set; }
-        public string EstadoFactura { get; set; }
-    }
+    
     public class VentaRequest
     {
         public DateTime? FechaOriginal { get; set; }

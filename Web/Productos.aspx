@@ -528,12 +528,15 @@
                              style="animation-delay: <%# (Container.ItemIndex * 80) %>ms">
 
                             <!-- Imagen -->
-                            <div class="card-imagen-wrapper">
-                                <img
-                                    src='<%# Eval("ImagenUrl") %>'
-                                    alt='<%# Eval("Nombre") %>'
-                                    class="card-img" />
-                            </div>
+
+ <div class="card-imagen-wrapper">
+
+     <img
+    src='<%# ResolveUrl(Eval("ImagenUrl").ToString()) %>'
+    alt='<%# Eval("Nombre") %>'
+    class="card-img" />
+
+ </div>
 
                             <!-- Cuerpo -->
                             <div class="card-body">

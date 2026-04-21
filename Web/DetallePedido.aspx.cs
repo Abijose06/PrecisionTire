@@ -1,35 +1,19 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Web;
+using System.Net;
+using System.Net.Http;
 using System.Web.UI;
-using System.Web.UI.WebControls;
+using Newtonsoft.Json;
 using WebGomas.Models;
 
 namespace WebGomas
 {
     public partial class DetallePedido : System.Web.UI.Page
     {
-        private List<Pedido> ObtenerPedidos()
-        {
-            return new List<Pedido>
-            {
-                new Pedido { Id = 1001, Fecha = "01/03/2026", Total = 185.00m, Estado = "Completado" },
-                new Pedido { Id = 1002, Fecha = "05/03/2026", Total = 340.00m, Estado = "Completado" },
-                new Pedido { Id = 1003, Fecha = "10/03/2026", Total = 155.00m, Estado = "Pendiente"  },
-                new Pedido { Id = 1004, Fecha = "15/03/2026", Total = 290.00m, Estado = "Procesando" },
-                new Pedido { Id = 1005, Fecha = "20/03/2026", Total = 170.00m, Estado = "Completado" }
-            };
-        }
+        private const string URL_CORE = "https://localhost:44376/api/";
 
         protected void Page_Load(object sender, EventArgs e)
         {
-            if (!IsPostBack)
-            {
-                CargarDetalle();
-            }
-
-            // Proteger la página
             if (Session["usuario"] == null)
             {
                 Response.Redirect("Login.aspx");
@@ -38,9 +22,81 @@ namespace WebGomas
 
             if (!IsPostBack)
             {
-                ActualizarHeader();    // ← agregar esta línea
-                                       // ... tu código existente que ya tenías
+                ActualizarHeader();
+                CargarDetalle();
             }
+        }
+
+        private void CargarDetalle()
+        {
+            string parametro = Request.QueryString["id"];
+            int id;
+
+            if (!int.TryParse(parametro, out id))
+            {
+                MostrarError();
+                return;
+            }
+
+            // Obtener detalle de la factura desde Core
+            List<DetalleItemDTO> detalles = ObtenerDetalleDesdeAPI(id);
+
+            if (detalles == null || detalles.Count == 0)
+            {
+                MostrarError();
+                return;
+            }
+
+            // Llenar cabecera
+            lblId.Text = "#" + id;
+            lblIdDetalle.Text = "#" + id;
+
+            // Calcular total
+            decimal total = 0;
+            foreach (var item in detalles)
+                total += item.SubTotal;
+
+            lblTotal.Text = total.ToString("C2");
+            lblTotalGeneral.Text = total.ToString("C2");
+
+            // Estado fijo — viene de la factura
+            lblEstado.Text = "Pagada";
+            lblEstado.CssClass = "badge-estado estado-pagada";
+
+            // Llenar GridView con los productos
+            gvProductos.DataSource = detalles;
+            gvProductos.DataBind();
+
+            pnlDetalle.Visible = true;
+        }
+
+        private List<DetalleItemDTO> ObtenerDetalleDesdeAPI(int idFactura)
+        {
+            try
+            {
+                ServicePointManager.ServerCertificateValidationCallback = delegate { return true; };
+                ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
+
+                using (var client = new HttpClient())
+                {
+                    var response = client.GetAsync(URL_CORE + "facturacion/detalle/" + idFactura).Result;
+
+                    if (response.IsSuccessStatusCode)
+                    {
+                        var json = response.Content.ReadAsStringAsync().Result;
+                        return JsonConvert.DeserializeObject<List<DetalleItemDTO>>(json);
+                    }
+                }
+            }
+            catch { }
+
+            return null;
+        }
+
+        private void MostrarError()
+        {
+            pnlDetalle.Visible = false;
+            pnlError.Visible = true;
         }
 
         private void ActualizarHeader()
@@ -49,7 +105,6 @@ namespace WebGomas
             {
                 phLogueado.Visible = true;
                 phNoLogueado.Visible = false;
-
                 string nombre = Session["nombre"].ToString();
                 lblUsuario.Text = nombre;
                 lblAvatar.Text = nombre.Substring(0, 1).ToUpper();
@@ -61,49 +116,15 @@ namespace WebGomas
             }
         }
 
-        private void CargarDetalle()
+        // DTO que coincide con lo que devuelve Core
+        private class DetalleItemDTO
         {
-            // Leer y validar el id del QueryString
-            string parametro = Request.QueryString["id"];
-            int id;
-
-            if (!int.TryParse(parametro, out id))
-            {
-                MostrarError();
-                return;
-            }
-
-            // Buscar el pedido
-            Pedido pedido = ObtenerPedidos().FirstOrDefault(p => p.Id == id);
-
-            if (pedido == null)
-            {
-                MostrarError();
-                return;
-            }
-
-            // Llenar los datos
-            lblId.Text = "#" + pedido.Id;
-            lblIdDetalle.Text = "#" + pedido.Id;
-            lblFecha.Text = pedido.Fecha;
-            lblTotal.Text = pedido.Total.ToString("C2");
-
-            // Badge de estado con color
-            lblEstado.Text = pedido.Estado;
-            switch (pedido.Estado)
-            {
-                case "Completado": lblEstado.CssClass = "badge-estado estado-completado"; break;
-                case "Procesando": lblEstado.CssClass = "badge-estado estado-procesando"; break;
-                case "Pendiente": lblEstado.CssClass = "badge-estado estado-pendiente"; break;
-            }
-
-            pnlDetalle.Visible = true;
-        }
-
-        private void MostrarError()
-        {
-            pnlDetalle.Visible = false;
-            pnlError.Visible = true;
+            public string Marca { get; set; }
+            public string Modelo { get; set; }
+            public string Medida { get; set; }
+            public int Cantidad { get; set; }
+            public decimal PrecioUnitario { get; set; }
+            public decimal SubTotal { get; set; }
         }
     }
 }

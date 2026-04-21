@@ -1,12 +1,13 @@
-﻿<%@ Page Language="C#" AutoEventWireup="true" CodeBehind="Login.aspx.cs" Inherits="WebGomas.Login" %>
+﻿<%@ Page Language="C#" AutoEventWireup="true"
+         CodeBehind="Registro.aspx.cs"
+         Inherits="WebGomas.Registro" %>
 
 <!DOCTYPE html>
-
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head runat="server">
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Iniciar Sesión — PrecisionTire</title>
+    <title>Crear Cuenta — PrecisionTire</title>
     <style>
 
         :root {
@@ -23,6 +24,8 @@
             --rojo-claro:  #fff5f5;
             --rojo-borde:  #fed7d7;
             --verde:       #1e8449;
+            --verde-claro: #d5f5e3;
+            --verde-borde: #a9dfbf;
             --radio:       14px;
             --sombra:      0 4px 32px rgba(0,0,0,0.08), 0 1px 4px rgba(0,0,0,0.04);
         }
@@ -38,7 +41,7 @@
             flex-direction: column;
         }
 
-        /* ── HEADER ── */
+        /* HEADER */
         .header {
             background: var(--blanco);
             border-bottom: 1px solid var(--gris-borde);
@@ -59,7 +62,7 @@
 
         .header-logo span { color: var(--azul); }
 
-        /* ── CONTENIDO ── */
+        /* CONTENIDO */
         .pagina {
             flex: 1;
             display: flex;
@@ -69,13 +72,13 @@
             padding: 48px 20px;
         }
 
-        /* ── CARD DE LOGIN ── */
-        .card-login {
+        /* CARD */
+        .card-registro {
             background: var(--blanco);
             border-radius: 20px;
             box-shadow: var(--sombra);
             width: 100%;
-            max-width: 420px;
+            max-width: 480px;
             overflow: hidden;
             animation: fadeUp 0.45s ease both;
         }
@@ -85,7 +88,7 @@
             to   { opacity: 1; transform: translateY(0); }
         }
 
-        /* Cabecera de la card */
+        /* Cabecera */
         .card-cabecera {
             background: linear-gradient(135deg, #0f2545 0%, #1a3a6e 60%, #1565c0 100%);
             padding: 32px 36px;
@@ -135,10 +138,10 @@
             z-index: 1;
         }
 
-        /* Cuerpo de la card */
+        /* Cuerpo */
         .card-cuerpo { padding: 32px 36px; }
 
-        /* ── MENSAJE DE ERROR ── */
+        /* Mensaje error */
         .mensaje-error {
             background: var(--rojo-claro);
             border: 1px solid var(--rojo-borde);
@@ -147,16 +150,36 @@
             display: flex;
             align-items: center;
             gap: 10px;
-            margin-bottom: 24px;
+            margin-bottom: 20px;
             font-size: 14px;
             color: var(--rojo);
             font-weight: 500;
         }
 
-        /* ── GRUPOS DE CAMPOS ── */
-        .campo-grupo {
+        /* Mensaje éxito */
+        .mensaje-exito {
+            background: var(--verde-claro);
+            border: 1px solid var(--verde-borde);
+            border-radius: 10px;
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
             margin-bottom: 20px;
+            font-size: 14px;
+            color: var(--verde);
+            font-weight: 500;
         }
+
+        /* Dos columnas */
+        .fila-doble {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+        }
+
+        /* Grupos de campo */
+        .campo-grupo { margin-bottom: 16px; }
 
         .campo-grupo label {
             display: block;
@@ -165,14 +188,13 @@
             letter-spacing: 0.8px;
             text-transform: uppercase;
             color: var(--gris-texto);
-            margin-bottom: 8px;
+            margin-bottom: 6px;
         }
 
-        /* El TextBox de ASP.NET renderiza como <input type="text"> */
         .campo-input {
             width: 100%;
-            padding: 12px 16px;
-            font-size: 15px;
+            padding: 11px 14px;
+            font-size: 14px;
             border: 2px solid var(--gris-borde);
             border-radius: var(--radio);
             color: var(--negro);
@@ -187,8 +209,8 @@
             box-shadow: 0 0 0 4px rgba(0,123,255,0.10);
         }
 
-        /* ── BOTÓN INICIAR SESIÓN ── */
-        .btn-login {
+        /* Botón registrar */
+        .btn-registro {
             width: 100%;
             padding: 15px;
             font-size: 16px;
@@ -204,25 +226,34 @@
             box-shadow: 0 4px 16px rgba(0,123,255,0.32);
         }
 
-        .btn-login:hover {
+        .btn-registro:hover {
             background: var(--azul-oscuro);
             transform: translateY(-2px);
             box-shadow: 0 8px 24px rgba(0,123,255,0.42);
         }
 
-        .btn-login:active {
+        .btn-registro:active {
             transform: translateY(0);
             box-shadow: 0 2px 8px rgba(0,123,255,0.22);
         }
 
-        /* ── SEPARADOR ── */
-        .separador {
-            height: 1px;
-            background: var(--gris-borde);
-            margin: 24px 0;
+        /* Link login */
+        .link-login {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 13px;
+            color: var(--gris-texto);
         }
 
-        /* ── NOTA INFERIOR ── */
+        .link-login a {
+            color: var(--azul);
+            font-weight: 600;
+            text-decoration: none;
+        }
+
+        .link-login a:hover { text-decoration: underline; }
+
+        /* Nota */
         .card-nota {
             text-align: center;
             font-size: 12px;
@@ -232,34 +263,7 @@
 
         .card-nota span { color: var(--verde); font-weight: 600; }
 
-        /* ── CREDENCIALES DE PRUEBA ── */
-        .credenciales-demo {
-            background: var(--azul-claro);
-            border: 1px solid #b3d4ff;
-            border-radius: 10px;
-            padding: 12px 16px;
-            margin-bottom: 24px;
-            font-size: 13px;
-            color: var(--azul);
-        }
-
-        .credenciales-demo strong {
-            display: block;
-            font-weight: 700;
-            margin-bottom: 4px;
-            font-size: 12px;
-            letter-spacing: 0.5px;
-            text-transform: uppercase;
-        }
-
-        .credenciales-demo span {
-            display: block;
-            font-family: 'Courier New', monospace;
-            font-size: 13px;
-            line-height: 1.8;
-        }
-
-        /* ── FOOTER ── */
+        /* FOOTER */
         .page-footer {
             text-align: center;
             padding: 24px;
@@ -271,7 +275,7 @@
         @media (max-width: 480px) {
             .card-cuerpo    { padding: 24px 20px; }
             .card-cabecera  { padding: 24px 20px; }
-            .card-nota      { padding: 0 20px 24px; }
+            .fila-doble     { grid-template-columns: 1fr; }
             .header         { padding: 16px 20px; }
         }
 
@@ -285,21 +289,20 @@
             <a href="Login.aspx" class="header-logo">Precision<span>Tire</span></a>
         </header>
 
-        <!-- CONTENIDO -->
         <main class="pagina">
-            <div class="card-login">
+            <div class="card-registro">
 
                 <!-- Cabecera -->
                 <div class="card-cabecera">
-                    <div class="cabecera-icono">🔐</div>
-                    <h2>Bienvenido</h2>
-                    <p>Inicia sesión para continuar</p>
+                    <div class="cabecera-icono">👤</div>
+                    <h2>Crear cuenta</h2>
+                    <p>Regístrate para empezar a comprar</p>
                 </div>
 
                 <!-- Cuerpo -->
                 <div class="card-cuerpo">
 
-                    <!-- Mensaje de error -->
+                    <!-- Error -->
                     <asp:Panel ID="pnlError" runat="server" Visible="false">
                         <div class="mensaje-error">
                             ⚠
@@ -307,23 +310,84 @@
                         </div>
                     </asp:Panel>
 
-                   
+                    <!-- Éxito -->
+                    <asp:Panel ID="pnlExito" runat="server" Visible="false">
+                        <div class="mensaje-exito">
+                            ✓
+                            <asp:Label ID="lblExito" runat="server" />
+                        </div>
+                    </asp:Panel>
 
-                    <!-- Campo Email -->
+                    <!-- Nombres y Apellidos -->
+                    <div class="fila-doble">
+                        <div class="campo-grupo">
+                            <label>Nombres</label>
+                            <asp:TextBox
+                                ID="txtNombres"
+                                runat="server"
+                                CssClass="campo-input"
+                                placeholder="Juan"
+                                MaxLength="80" />
+                        </div>
+                        <div class="campo-grupo">
+                            <label>Apellidos</label>
+                            <asp:TextBox
+                                ID="txtApellidos"
+                                runat="server"
+                                CssClass="campo-input"
+                                placeholder="Pérez"
+                                MaxLength="80" />
+                        </div>
+                    </div>
+
+                    <!-- Correo -->
                     <div class="campo-grupo">
-                        <label for="txtEmail">Correo electrónico</label>
+                        <label>Correo electrónico</label>
                         <asp:TextBox
-                            ID="txtEmail"
+                            ID="txtCorreo"
                             runat="server"
                             TextMode="Email"
                             CssClass="campo-input"
                             placeholder="tu@email.com"
-                            MaxLength="100" />
+                            MaxLength="255" />
                     </div>
 
-                    <!-- Campo Password -->
+                    <!-- Teléfono y Documento -->
+                    <div class="fila-doble">
+                        <div class="campo-grupo">
+                            <label>Teléfono</label>
+                            <asp:TextBox
+                                ID="txtTelefono"
+                                runat="server"
+                                CssClass="campo-input"
+                                placeholder="809-000-0000"
+                                MaxLength="20" />
+                        </div>
+                        <div class="campo-grupo">
+                            <label>Documento</label>
+                            <asp:TextBox
+                                ID="txtDocumento"
+                                runat="server"
+                                CssClass="campo-input"
+                                placeholder="00000000000"
+                                MaxLength="15" />
+                        </div>
+                    </div>
+
+                    <!-- Dirección -->
                     <div class="campo-grupo">
-                        <label for="txtPassword">Contraseña</label>
+                        <label>Dirección</label>
+                        <asp:TextBox
+                            ID="txtDireccion"
+                            runat="server"
+                            CssClass="campo-input"
+                            placeholder="Santo Domingo, RD"
+                            MaxLength="255" />
+                    </div>
+
+                    <!-- Contraseña -->
+                    <div class="campo-grupo">
+                        <label>Contraseña</label>
                         <asp:TextBox
                             ID="txtPassword"
                             runat="server"
@@ -333,36 +397,31 @@
                             MaxLength="50" />
                     </div>
 
-                    <!-- Botón login -->
+                    <!-- Botón registrar -->
                     <asp:Button
-                        ID="btnLogin"
+                        ID="btnRegistrar"
                         runat="server"
-                        Text="Iniciar sesión →"
-                        CssClass="btn-login"
-                        OnClick="btnLogin_Click"
+                        Text="Crear cuenta →"
+                        CssClass="btn-registro"
+                        OnClick="btnRegistrar_Click"
                         CausesValidation="false" />
 
-                    <div class="separador"></div>
-
-                    <!-- Link registro -->
-                    <div style="text-align:center; font-size:13px; color:#6c757d; margin-top:8px;">
-                        ¿No tienes cuenta?
-                        <a href="Registro.aspx" style="color:#007BFF; font-weight:600; text-decoration:none;">
-                            Regístrate aquí
-                        </a>
+                    <!-- Link a login -->
+                    <div class="link-login">
+                        ¿Ya tienes cuenta?
+                        <a href="Login.aspx">Inicia sesión aquí</a>
                     </div>
 
                 </div>
 
-                <!-- Nota de seguridad -->
+                <!-- Nota -->
                 <div class="card-nota">
-                    <span>🔒 Conexión segura</span> · Tus datos están protegidos
+                    <span>🔒 Registro seguro</span> · Tus datos están protegidos
                 </div>
 
             </div>
         </main>
 
-        <!-- FOOTER -->
         <footer class="page-footer">
             © 2026 PrecisionTire · Todos los derechos reservados
         </footer>

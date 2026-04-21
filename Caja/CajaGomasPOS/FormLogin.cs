@@ -22,23 +22,28 @@ namespace CajaGomasPOS
 
         private async void btnIngresar_Click(object sender, EventArgs e)
         {
-            // 1. Armamos el paquete EXACTAMENTE como lo pide la clase LoginRequest de tu compañero
+            // Bloqueamos el botón para que el usuario no le dé 10 veces seguidas
+            btnIngresar.Enabled = false;
+            btnIngresar.Text = "Conectando...";
+
+            // Preparamos los datos
             var peticionLogin = new
             {
-                TipoDocumento = 1, // Asumimos 1 por defecto (ej. Cédula)
                 Documento = txtUsuario.Text,
                 Password = txtPassword.Text
             };
 
-            using (var client = new HttpClient())
-            {
-                try
-                {
-                    // IMPORTANTE: Cambia "tu-puerto" por el puerto de tu Core
-                    client.BaseAddress = new Uri(UrlIntegracion);
-                    var content = new StringContent(JsonConvert.SerializeObject(peticionLogin), Encoding.UTF8, "application/json");
+            bool conexionExitosa = false;
 
-                    // 2. Apuntamos a la ruta real que ya programó tu compañero
+            // --- INTENTO 1: MODO ONLINE (API/BASE DE DATOS) ---
+            try
+            {
+                using (var client = new System.Net.Http.HttpClient())
+                {
+                    client.BaseAddress = new Uri(UrlIntegracion);
+                    client.Timeout = TimeSpan.FromSeconds(4); // Si en 4 segundos no hay internet, saltamos al offline
+
+                    var content = new System.Net.Http.StringContent(JsonConvert.SerializeObject(peticionLogin), System.Text.Encoding.UTF8, "application/json");
                     var response = await client.PostAsync("api/usuarios/login", content);
 
                     if (response.IsSuccessStatusCode)
@@ -46,25 +51,56 @@ namespace CajaGomasPOS
                         var jsonString = await response.Content.ReadAsStringAsync();
                         dynamic datosUsuario = JsonConvert.DeserializeObject(jsonString);
 
-                        // 3. Leemos el Rol y el NombreCompleto tal como los devuelve su API
-                        RolUsuario = datosUsuario.Rol;
-                        string nombreAtendido = datosUsuario.NombreCompleto;
+                        this.RolUsuario = datosUsuario.Rol;
+                        MessageBox.Show("Conexión Establecida.\nBienvenido, " + datosUsuario.NombreCompleto, "Modo Online", MessageBoxButtons.OK, MessageBoxIcon.Information);
 
-                        MessageBox.Show("Bienvenido al sistema, " + nombreAtendido, "Acceso Concedido", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                        conexionExitosa = true;
+                        this.DialogResult = DialogResult.OK;
+                        this.Close();
+                    }
+                    else if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+                    {
+                        MessageBox.Show("Documento o Contraseña incorrectos en la Base de Datos central.", "Acceso Denegado", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                        conexionExitosa = true; // La red funcionó, pero la clave estaba mal, así que no vamos al offline.
+                    }
+                }
+            }
+            catch (Exception)
+            {
+                // Hubo un error de red (Timeout, servidor apagado, sin internet).
+                // conexionExitosa sigue siendo 'false', así que el código seguirá abajo.
+            }
+
+            // --- INTENTO 2: MODO OFFLINE (JSON LOCAL) ---
+            // Solo entramos aquí si el intento 1 falló por falta de red
+            if (!conexionExitosa)
+            {
+                try
+                {
+                    var usuarioLocal = GestorOffline.ValidarLoginJSON(txtUsuario.Text, txtPassword.Text);
+
+                    if (usuarioLocal != null)
+                    {
+                        this.RolUsuario = usuarioLocal.Rol;
+                        MessageBox.Show("Servidor no disponible. Iniciando en MODO OFFLINE de respaldo.\n\nBienvenido, " + usuarioLocal.Nombres, "Acceso Local", MessageBoxButtons.OK, MessageBoxIcon.Warning);
 
                         this.DialogResult = DialogResult.OK;
                         this.Close();
                     }
                     else
                     {
-                        MessageBox.Show("Documento o Clave incorrectos.\nO el usuario está inactivo en la base central.", "Error de Acceso", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        MessageBox.Show("Sin conexión al Servidor y las credenciales no coinciden con ninguna cuenta de emergencia local.", "Acceso Denegado", MessageBoxButtons.OK, MessageBoxIcon.Error);
                     }
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show("Error de conexión con el Servidor Core: " + ex.Message, "Fallo de Red", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    MessageBox.Show("Error crítico al leer archivo de emergencia: " + ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
             }
+
+            // Restauramos el botón si falló el login
+            btnIngresar.Enabled = true;
+            btnIngresar.Text = "Iniciar Sesión";
         }
 
         private void FormLogin_Load(object sender, EventArgs e)

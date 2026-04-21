@@ -1,44 +1,19 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Web;
+using System.Net;
+using System.Net.Http;
 using System.Web.UI;
-using System.Web.UI.WebControls;
+using Newtonsoft.Json;
 using WebGomas.Models;
 
 namespace WebGomas
 {
-
     public partial class Productos : System.Web.UI.Page
     {
-        // -------------------------------------------------------
-        // Datos simulados (hardcoded) — sin base de datos
-        // -------------------------------------------------------
-        private List<Producto> ObtenerProductos()
-        {
-            return new List<Producto>
-            {
-                new Producto { Id = 1, Nombre = "Pilot Sport 4",     Marca = "Michelin",    Precio = 185.00m,   ImagenUrl = "images/GomaPilotSport4.png"},
-                new Producto { Id = 2, Nombre = "Eagle F1 Asymmetric", Marca = "Goodyear",  Precio = 160.00m,   ImagenUrl = "images/GomaEagle F1 Asymmetric.png"},
-                new Producto { Id = 3, Nombre = "Cinturato P7",      Marca = "Pirelli",     Precio = 145.00m,   ImagenUrl = "images/GomaCinturatoP7.png"},
-                new Producto { Id = 4, Nombre = "ContiSportContact", Marca = "Continental", Precio = 170.00m,   ImagenUrl = "images/GomaContiSportContact.png"},
-                new Producto { Id = 5, Nombre = "Potenza S007",      Marca = "Bridgestone", Precio = 155.00m,   ImagenUrl = "images/GomaPotenza S007.png"},
-                new Producto { Id = 6, Nombre = "Ventus S1 Evo3",    Marca = "Hankook",     Precio = 138.00m,   ImagenUrl = "images/GomaVentusS1Evo3.png"},
-                new Producto { Id = 7, Nombre = "Proxes Sport",      Marca = "Toyo",        Precio = 142.00m,   ImagenUrl = "images/GomaProxes Sport.png"},
-                new Producto { Id = 8, Nombre = "Primacy 4+",        Marca = "Michelin",    Precio = 167.00m,   ImagenUrl = "images/GomaPrimacy4.png"}
-            };
-        }
+        private const string URL_CORE = "https://localhost:44376/api/";
 
-        // -------------------------------------------------------
-        // Carga inicial de la página
-        // -------------------------------------------------------
         protected void Page_Load(object sender, EventArgs e)
         {
-            if (!IsPostBack)
-            {
-                CargarProductos();
-            }
-
             if (Session["usuario"] == null)
             {
                 Response.Redirect("Login.aspx");
@@ -47,12 +22,93 @@ namespace WebGomas
 
             if (!IsPostBack)
             {
-                ActualizarHeader();    // ← agregar esta línea
-                                       // ... tu código existente que ya tenías
+                ActualizarHeader();
+                CargarProductos();
             }
-
         }
 
+        private void CargarProductos()
+        {
+            List<Producto> productos = ObtenerProductosDesdeAPI();
+
+            lblCantidad.Text = productos.Count + " productos";
+            rptProductos.DataSource = productos;
+            rptProductos.DataBind();
+        }
+
+        private List<Producto> ObtenerProductosDesdeAPI()
+        {
+            try
+            {
+                ServicePointManager.ServerCertificateValidationCallback = delegate { return true; };
+                ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
+
+                using (var client = new HttpClient())
+                {
+                    var response = client.GetAsync(URL_CORE + "productos/catalogo/1").Result;
+
+                    if (response.IsSuccessStatusCode)
+                    {
+                        var json = response.Content.ReadAsStringAsync().Result;
+                        var dtos = JsonConvert.DeserializeObject<List<ProductoDTO>>(json);
+
+                        var lista = new List<Producto>();
+                        foreach (var dto in dtos)
+                        {
+                            lista.Add(new Producto
+                            {
+                                Id = dto.IdProducto,
+                                Nombre = dto.Modelo,
+                                Marca = dto.Marca,
+                                Precio = dto.PrecioVenta,
+                                ImagenUrl = ObtenerImagenPorModelo(dto.Modelo)
+                            });
+                        }
+                        return lista;
+                    }
+                }
+            }
+            catch { }
+
+            return ObtenerDatosSimulados();
+        }
+
+        // -------------------------------------------------------
+        // Asigna la imagen local según el nombre del modelo
+        // -------------------------------------------------------
+        private string ObtenerImagenPorModelo(string modelo)
+        {
+            if (modelo == null) return "images/GomaPilotSport4.png";
+
+            if (modelo.Contains("Pilot Sport")) return "images/GomaPilotSport4.png";
+            if (modelo.Contains("Eagle")) return "images/GomaEagle%20F1%20Asymmetric.png";
+            if (modelo.Contains("Cinturato")) return "images/GomaCinturatoP7.png";
+            if (modelo.Contains("Conti")) return "images/GomaContiSportContact.png";
+            if (modelo.Contains("Potenza")) return "images/GomaPotenza%20S007.png";
+            if (modelo.Contains("Ventus")) return "images/GomaVentusS1Evo3.png";
+            if (modelo.Contains("Proxes")) return "images/GomaProxes%20Sport.png";
+            if (modelo.Contains("Primacy")) return "images/GomaPrimacy4.png";
+
+            return "images/GomaPilotSport4.png";
+        }
+
+        // -------------------------------------------------------
+        // Respaldo si Core no está disponible
+        // -------------------------------------------------------
+        private List<Producto> ObtenerDatosSimulados()
+        {
+            return new List<Producto>
+            {
+                new Producto { Id = 1, Nombre = "Pilot Sport 4",       Marca = "Michelin",    Precio = 185.00m, ImagenUrl = "images/GomaPilotSport4.png"       },
+                new Producto { Id = 2, Nombre = "Eagle F1 Asymmetric", Marca = "Goodyear",    Precio = 160.00m, ImagenUrl = "images/GomaEagleF1Asymmetric.png" },
+                new Producto { Id = 3, Nombre = "Cinturato P7",        Marca = "Pirelli",     Precio = 145.00m, ImagenUrl = "images/GomaCinturatoP7.png"       },
+                new Producto { Id = 4, Nombre = "ContiSportContact",   Marca = "Continental", Precio = 170.00m, ImagenUrl = "images/GomaContiSportContact.png" },
+                new Producto { Id = 5, Nombre = "Potenza S007",        Marca = "Bridgestone", Precio = 155.00m, ImagenUrl = "images/GomaPotenzaS007.png"       },
+                new Producto { Id = 6, Nombre = "Ventus S1 Evo3",      Marca = "Hankook",     Precio = 138.00m, ImagenUrl = "images/GomaVentusS1Evo3.png"      },
+                new Producto { Id = 7, Nombre = "Proxes Sport",        Marca = "Toyo",        Precio = 142.00m, ImagenUrl = "images/GomaProxesSport.png"       },
+                new Producto { Id = 8, Nombre = "Primacy 4+",          Marca = "Michelin",    Precio = 167.00m, ImagenUrl = "images/GomaPrimacy4.png"          }
+            };
+        }
 
         private void ActualizarHeader()
         {
@@ -60,7 +116,6 @@ namespace WebGomas
             {
                 phLogueado.Visible = true;
                 phNoLogueado.Visible = false;
-
                 string nombre = Session["nombre"].ToString();
                 lblUsuario.Text = nombre;
                 lblAvatar.Text = nombre.Substring(0, 1).ToUpper();
@@ -72,20 +127,14 @@ namespace WebGomas
             }
         }
 
-        // -------------------------------------------------------
-        // Vincula la lista al Repeater y actualiza el contador
-        // -------------------------------------------------------
-        private void CargarProductos()
+        private class ProductoDTO
         {
-            List<Producto> productos = ObtenerProductos();
-
-            // Mostrar cantidad de productos en el badge del header
-            lblCantidad.Text = productos.Count + " productos";
-
-            // Binding al Repeater
-            rptProductos.DataSource = productos;
-            rptProductos.DataBind();
+            public int IdProducto { get; set; }
+            public string Marca { get; set; }
+            public string Modelo { get; set; }
+            public string Medida { get; set; }
+            public decimal PrecioVenta { get; set; }
+            public int StockActual { get; set; }
         }
-
     }
 }
