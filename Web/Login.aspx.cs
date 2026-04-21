@@ -1,11 +1,12 @@
-﻿using System;
+﻿using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+using System;
+using System.Configuration;
+using System.Net;
 using System.Net.Http;          
 using System.Text;
 using System.Web;
 using System.Web.UI;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
-using System.Net;
 
 namespace WebGomas
 {
@@ -56,7 +57,7 @@ namespace WebGomas
 
                 using (HttpClient client = new HttpClient())
                 {
-                    string apiUrl = "https://localhost:44376/api/usuarios/login";
+                    string UrlIntegracion = ConfigurationManager.AppSettings["UrlIntegracion"];
 
                     var requestData = new
                     {
@@ -68,7 +69,7 @@ namespace WebGomas
                     var content = new StringContent(json, Encoding.UTF8, "application/json");
 
                     // Ahora PostAsync funcionará porque agregamos el using System.Net.Http arriba
-                    var response = client.PostAsync(apiUrl, content).Result;
+                    var response = client.PostAsync(UrlIntegracion, content).Result;
 
                     if (response.IsSuccessStatusCode)
                     {

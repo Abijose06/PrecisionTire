@@ -1,16 +1,17 @@
-﻿using System;
+﻿using Newtonsoft.Json;
+using System;
+using System.Configuration;
 using System.Net;
 using System.Net.Http;
 using System.Text;
 using System.Web;
 using System.Web.UI;
-using Newtonsoft.Json;
 
 namespace WebGomas
 {
     public partial class Registro : System.Web.UI.Page
     {
-        private const string URL_CORE = "https://localhost:44376/api/";
+        string UrlIntegracion = ConfigurationManager.AppSettings["UrlIntegracion"];
 
         protected void Page_Load(object sender, EventArgs e)
         {
@@ -72,7 +73,7 @@ namespace WebGomas
                     string json = JsonConvert.SerializeObject(requestData);
                     var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-                    var response = client.PostAsync(URL_CORE + "usuarios/registro", content).Result;
+                    var response = client.PostAsync(UrlIntegracion + "usuarios/registro", content).Result;
 
                     if (response.IsSuccessStatusCode)
                     {

@@ -1,18 +1,19 @@
-﻿using System;
+﻿using Newtonsoft.Json;
+using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Text;
 using System.Web.UI;
-using Newtonsoft.Json;
 using WebGomas.Models;
 
 namespace WebGomas
 {
     public partial class Confirmacion : System.Web.UI.Page
     {
-        private const string URL_CORE = "https://localhost:44376/api/";
+        string UrlIntegracion = ConfigurationManager.AppSettings["UrlIntegracion"];
 
         protected void Page_Load(object sender, EventArgs e)
         {
@@ -113,7 +114,7 @@ namespace WebGomas
 
                 using (var client = new HttpClient())
                 {
-                    var response = client.PostAsync(URL_CORE + "facturacion/procesar", content).Result;
+                    var response = client.PostAsync(UrlIntegracion + "facturacion/procesar", content).Result;
                     return response.IsSuccessStatusCode;
                 }
             }

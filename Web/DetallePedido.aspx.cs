@@ -1,16 +1,17 @@
-﻿using System;
+﻿using Newtonsoft.Json;
+using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.Net;
 using System.Net.Http;
 using System.Web.UI;
-using Newtonsoft.Json;
 using WebGomas.Models;
 
 namespace WebGomas
 {
     public partial class DetallePedido : System.Web.UI.Page
     {
-        private const string URL_CORE = "https://localhost:44376/api/";
+        string UrlIntegracion = ConfigurationManager.AppSettings["UrlIntegracion"];
 
         protected void Page_Load(object sender, EventArgs e)
         {
@@ -79,7 +80,7 @@ namespace WebGomas
 
                 using (var client = new HttpClient())
                 {
-                    var response = client.GetAsync(URL_CORE + "facturacion/detalle/" + idFactura).Result;
+                    var response = client.GetAsync(UrlIntegracion + "facturacion/detalle/" + idFactura).Result;
 
                     if (response.IsSuccessStatusCode)
                     {
