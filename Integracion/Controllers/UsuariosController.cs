@@ -28,5 +28,24 @@ namespace Integracion.Controllers
                 return StatusCode(response.StatusCode);
             }
         }
+
+
+        // POST api/Usuarios/Registro
+        [HttpPost]
+        [Route("Registro")]
+        public async Task<IHttpActionResult> Registro([FromBody] object nuevoUsuario)
+        {
+            using (HttpClient client = new HttpClient())
+            {
+                HttpResponseMessage response = await client.PostAsJsonAsync(urlCore + "usuarios/registro", nuevoUsuario);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var data = await response.Content.ReadAsAsync<object>();
+                    return Ok(data);
+                }
+                return StatusCode(response.StatusCode);
+            }
+        }
     }
 }

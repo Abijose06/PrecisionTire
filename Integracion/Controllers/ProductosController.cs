@@ -32,5 +32,28 @@ namespace Integracion.Controllers
                 return StatusCode(response.StatusCode);
             }
         }
+
+        // GET api/Productos/catalogo/{idSucursal}
+        [HttpGet]
+        [Route("catalogo/{idSucursal}")]
+        public async Task<IHttpActionResult> GetCatalogo(int idSucursal)
+        {
+            using (HttpClient client = new HttpClient())
+            {
+                // Reenviamos la petición al CORE con el parámetro
+                HttpResponseMessage response = await client.GetAsync(urlCore + $"productos/catalogo/{idSucursal}");
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var data = await response.Content.ReadAsAsync<object>();
+                    return Ok(data);
+                }
+                return StatusCode(response.StatusCode);
+            }
+        }
+
+
+
+
     }
 }

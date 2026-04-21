@@ -32,5 +32,60 @@ namespace Integracion.Controllers
                 return StatusCode(response.StatusCode);
             }
         }
+
+
+        // GET api/Facturacion/Historial/{idCliente}
+        [HttpGet]
+        [Route("Historial/{idCliente}")]
+        public async Task<IHttpActionResult> Historial(int idCliente)
+        {
+            using (HttpClient client = new HttpClient())
+            {
+                HttpResponseMessage response = await client.GetAsync(urlCore + $"facturacion/historial/{idCliente}");
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var data = await response.Content.ReadAsAsync<object>();
+                    return Ok(data);
+                }
+                return StatusCode(response.StatusCode);
+            }
+        }
+
+        // GET api/Facturacion/Detalle/{idFactura}
+        [HttpGet]
+        [Route("Detalle/{idFactura}")]
+        public async Task<IHttpActionResult> Detalle(int idFactura)
+        {
+            using (HttpClient client = new HttpClient())
+            {
+                HttpResponseMessage response = await client.GetAsync(urlCore + $"facturacion/detalle/{idFactura}");
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var data = await response.Content.ReadAsAsync<object>();
+                    return Ok(data);
+                }
+                return StatusCode(response.StatusCode);
+            }
+        }
+
+        // POST api/Facturacion/Procesar
+        [HttpPost]
+        [Route("Procesar")]
+        public async Task<IHttpActionResult> Procesar([FromBody] object pedido)
+        {
+            using (HttpClient client = new HttpClient())
+            {
+                HttpResponseMessage response = await client.PostAsJsonAsync(urlCore + "facturacion/procesar", pedido);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var data = await response.Content.ReadAsAsync<object>();
+                    return Ok(data);
+                }
+                return StatusCode(response.StatusCode);
+            }
+        }
     }
 }
