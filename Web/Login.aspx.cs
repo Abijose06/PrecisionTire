@@ -69,8 +69,7 @@ namespace WebGomas
                     var content = new StringContent(json, Encoding.UTF8, "application/json");
 
                     // Ahora PostAsync funcionará porque agregamos el using System.Net.Http arriba
-                    var response = client.PostAsync(UrlIntegracion, content).Result;
-
+                    var response = client.PostAsync(UrlIntegracion + "Usuarios/Login", content).Result;
                     if (response.IsSuccessStatusCode)
                     {
                         var resultString = response.Content.ReadAsStringAsync().Result;
@@ -97,13 +96,15 @@ namespace WebGomas
                     }
                     else
                     {
-                        MostrarError("Error al intentar iniciar sesión. Intenta más tarde.");
+                        // Esto leerá el error real que viene del servidor (Integración/Core)
+                        string errorReal = response.Content.ReadAsStringAsync().Result;
+                        MostrarError("Error del servidor: " + errorReal);
                     }
                 }
             }
             catch (Exception ex)
             {
-                MostrarError("No se pudo conectar con el servidor: " + ex.Message);
+                MostrarError("Error al intentar iniciar sesión. Intenta más tarde.");
             }
         }
 

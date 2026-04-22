@@ -13,6 +13,7 @@ namespace Core
     {
         protected void Application_Start()
         {
+            System.Data.Entity.Database.SetInitializer<Core.Models.GomasContext>(null);
             log4net.Config.XmlConfigurator.Configure();
             AreaRegistration.RegisterAllAreas();
             GlobalConfiguration.Configure(WebApiConfig.Register);

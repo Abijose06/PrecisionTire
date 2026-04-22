@@ -2,6 +2,7 @@
 using System.Net.Http;
 using System.Threading.Tasks;
 using System.Web.Http;
+using System.Net; 
 
 namespace Integracion.Controllers
 {
@@ -15,6 +16,8 @@ namespace Integracion.Controllers
         [Route("Login")]
         public async Task<IHttpActionResult> Login([FromBody] object credenciales)
         {
+            ServicePointManager.ServerCertificateValidationCallback = delegate { return true; };
+            ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
             using (HttpClient client = new HttpClient())
             {
                 HttpResponseMessage response = await client.PostAsJsonAsync(urlCore + "Usuarios/Login", credenciales);
@@ -37,6 +40,8 @@ namespace Integracion.Controllers
         {
             using (HttpClient client = new HttpClient())
             {
+                ServicePointManager.ServerCertificateValidationCallback = delegate { return true; };
+                ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
                 HttpResponseMessage response = await client.PostAsJsonAsync(urlCore + "usuarios/registro", nuevoUsuario);
 
                 if (response.IsSuccessStatusCode)
