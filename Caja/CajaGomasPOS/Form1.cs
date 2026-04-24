@@ -454,7 +454,11 @@ namespace CajaGomasPOS
             }
 
             decimal subTotal = 0;
-            foreach (DataGridViewRow f in dgvCarrito.Rows) subTotal += Convert.ToDecimal(f.Cells[4].Value);
+            foreach (DataGridViewRow f in dgvCarrito.Rows)
+            {
+                if (f.IsNewRow || f.Cells[4].Value == null) continue;
+                subTotal += Convert.ToDecimal(f.Cells[4].Value);
+            }
 
             // 1. Abrimos la pantalla de cobro (FormCobro)
             FormCobro cobro = new FormCobro();
@@ -467,39 +471,44 @@ namespace CajaGomasPOS
                 reciboEfectivo = cobro.EfectivoEntregado;
                 reciboDevuelta = cobro.CambioDevuelto;
 
-                // 2. Preparamos el paquete de datos con lo que el cliente compró
+                // --- REEMPLAZA ESTO DENTRO DE btnFacturar_Click EN Form1.cs ---
+
+                // 2. Preparamos el paquete de datos
                 int idClienteVal = cmbCliente.SelectedValue != null ? Convert.ToInt32(cmbCliente.SelectedValue) : 1003;
-                int idEmpleadoVal = 3;
 
                 var peticionVenta = new
                 {
                     IdCliente = idClienteVal,
-                    IdEmpleado = idEmpleadoVal,
+                    IdEmpleado = 4,
                     IdSucursal = 1,
                     IdVehiculo = 1,
                     MetodoPago = reciboMetodo,
                     TotalGeneral = cobro.TotalPagar,
                     Fecha = DateTime.Now,
-                    Detalles = new List<object>()
+                    // El nombre debe ser exacto: VentaDetalles
+                    VentaDetalles = new List<object>()
                 };
 
                 foreach (DataGridViewRow f in dgvCarrito.Rows)
                 {
-                    char tipoItem = f.Cells[0].Value.ToString().Contains("Goma") ? 'P' : 'S';
+                    if (f.IsNewRow || f.Cells[0].Value == null) continue;
+
+                    bool esGoma = f.Cells[0].Value.ToString().Contains("Goma");
                     int idArticulo = Convert.ToInt32(f.Cells[5].Value);
 
-                    peticionVenta.Detalles.Add(new
+                    peticionVenta.VentaDetalles.Add(new
                     {
-                        TipoItem = tipoItem.ToString(),
-                        IdProducto = tipoItem == 'P' ? idArticulo : (int?)null,
-                        IdServicio = tipoItem == 'S' ? idArticulo : (int?)null,
+                        TipoItem = esGoma ? "P" : "S",
+                        IdProducto = esGoma ? idArticulo : (int?)null,
+                        IdServicio = !esGoma ? idArticulo : (int?)null,
                         Cantidad = Convert.ToInt32(f.Cells[2].Value),
                         PrecioUnitario = Convert.ToDecimal(f.Cells[3].Value)
                     });
                 }
+            // --- FIN DEL BLOQUE A REEMPLAZAR ---
 
-                // Variable bandera para saber si guardamos el desglose al final
-                bool ventaCompletada = false;
+            // Variable bandera para saber si guardamos el desglose al final
+            bool ventaCompletada = false;
 
                 // 3. INTENTO ONLINE: Tratamos de mandarlo al servidor central
                 try
@@ -508,9 +517,12 @@ namespace CajaGomasPOS
                     {
                         client.BaseAddress = new Uri(UrlIntegracion);
                         client.Timeout = TimeSpan.FromSeconds(4); // ← AGREGAR ESTA LÍNEA
-                        var content = new StringContent(JsonConvert.SerializeObject(peticionVenta), Encoding.UTF8, "application/json");
-
-                        var response = await client.PostAsync("api/facturacion/procesar", content);
+                        string jsonEnviado = JsonConvert.SerializeObject(peticionVenta, Formatting.Indented);
+                        System.IO.File.WriteAllText(
+                            Environment.GetFolderPath(Environment.SpecialFolder.Desktop) + "\\JsonEnviado.txt",
+                            jsonEnviado);
+                        var content = new StringContent(jsonEnviado, Encoding.UTF8, "application/json");
+                        var response = await client.PostAsync("api/Facturacion/Procesar", content);
 
                         if (response.IsSuccessStatusCode)
                         {

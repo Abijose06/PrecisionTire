@@ -88,7 +88,7 @@ namespace Core.Controllers
                 {
                     transaccion.Rollback();
                     log.Error($"Fallo crítico y Rollback ejecutado al intentar procesar venta para el Cliente ID: {request.IdCliente}", ex);
-                    return InternalServerError(new Exception("Error crítico al procesar la venta. Se ha revertido la operación.")); 
+                    return InternalServerError(ex); // ← devuelve el error real
                 }
             }
         }
@@ -206,7 +206,7 @@ namespace Core.Controllers
 
     }
 
-    
+
     public class VentaRequest
     {
         public DateTime? FechaOriginal { get; set; }
@@ -214,8 +214,18 @@ namespace Core.Controllers
         public int? IdEmpleado { get; set; }
         public int IdSucursal { get; set; }
         public int IdVehiculo { get; set; }
-        public string MetodoPago { get; set; } // NUEVO: Efectivo, Tarjeta o Transferencia
+        public string MetodoPago { get; set; }
+
+        // Acepta tanto "Detalles" como "VentaDetalles"
+        [Newtonsoft.Json.JsonProperty("Detalles")]
         public List<VentaDetalleDTO> Detalles { get; set; }
+
+        [Newtonsoft.Json.JsonProperty("VentaDetalles")]
+        public List<VentaDetalleDTO> VentaDetalles
+        {
+            get => Detalles;
+            set => Detalles = value;
+        }
     }
 
     public class VentaDetalleDTO

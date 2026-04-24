@@ -79,21 +79,34 @@ namespace Integracion.Controllers
         }
 
         // POST api/Facturacion/Procesar
+        // POST api/Facturacion/Procesar
         [HttpPost]
         [Route("Procesar")]
-        public async Task<IHttpActionResult> Procesar([FromBody] object pedido)
+        public async Task<IHttpActionResult> Procesar()
         {
             ServicePointManager.ServerCertificateValidationCallback = delegate { return true; };
             ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
+
+            // Leemos el cuerpo de la petición como texto crudo — sin tocar el JSON
+            string jsonCrudo = await Request.Content.ReadAsStringAsync();
+
+            if (string.IsNullOrWhiteSpace(jsonCrudo))
+                return BadRequest("No se recibió ningún dato.");
+
             using (HttpClient client = new HttpClient())
             {
-                HttpResponseMessage response = await client.PostAsJsonAsync(urlCore + "facturacion/procesar", pedido);
+                var content = new StringContent(jsonCrudo, System.Text.Encoding.UTF8, "application/json");
+                HttpResponseMessage response = await client.PostAsync(urlCore + "facturacion/procesar", content);
+
                 if (response.IsSuccessStatusCode)
                 {
                     var data = await response.Content.ReadAsAsync<object>();
                     return Ok(data);
                 }
-                return StatusCode(response.StatusCode);
+
+                // Si el Core devuelve error, lo propagamos con su mensaje
+                string mensajeError = await response.Content.ReadAsStringAsync();
+                return Content(response.StatusCode, mensajeError);
             }
         }
     }
