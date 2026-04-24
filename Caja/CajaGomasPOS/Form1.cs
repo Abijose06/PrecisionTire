@@ -522,8 +522,18 @@ namespace CajaGomasPOS
                         }
                         else
                         {
-                            string error = await response.Content.ReadAsStringAsync();
-                            MessageBox.Show("❌ El Servidor rechazó la venta:\n" + error, "Error de validación", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                            string cuerpoRespuesta = await response.Content.ReadAsStringAsync();
+
+                            // Armamos un reporte forense completo
+                            string chismeCompleto = "--- REPORTE DE ERROR DEL SERVIDOR ---\n";
+                            chismeCompleto += $"Código de Error: {(int)response.StatusCode} ({response.StatusCode})\n";
+                            chismeCompleto += $"Razón Oficial: {response.ReasonPhrase}\n";
+                            chismeCompleto += $"Mensaje del Cuerpo: {cuerpoRespuesta}\n";
+
+                            string ruta = Environment.GetFolderPath(Environment.SpecialFolder.Desktop) + "\\ErrorServidor.txt";
+                            System.IO.File.WriteAllText(ruta, chismeCompleto);
+
+                            MessageBox.Show($"❌ El Servidor rechazó la venta con el código {(int)response.StatusCode}.\n\nRevisa el archivo ErrorServidor.txt en tu escritorio para más detalles.", "Error de Comunicación", MessageBoxButtons.OK, MessageBoxIcon.Error);
                         }
                     }
                 }

@@ -85,7 +85,19 @@ namespace Core.DataEntry
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Error al cargar los vehículos: " + ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                string errorReal = ex.Message;
+
+                // Escarbamos hasta llegar al error original de SQL Server
+                if (ex.InnerException != null)
+                {
+                    errorReal += "\nDetalle interno: " + ex.InnerException.Message;
+                    if (ex.InnerException.InnerException != null)
+                    {
+                        errorReal += "\nError de SQL: " + ex.InnerException.InnerException.Message;
+                    }
+                }
+
+                MessageBox.Show("Error al cargar los vehículos:\n\n" + errorReal, "Error Forense", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
@@ -114,7 +126,7 @@ namespace Core.DataEntry
                         IdCliente = Convert.ToInt32(cmbCliente.SelectedValue),
                         Marca = txtMarca.Text,
                         Modelo = txtModelo.Text,
-                        Año = Convert.ToInt32(nudAño.Value),
+                        Año = Convert.ToInt16(nudAño.Value),
                         Placa = txtPlaca.Text,
                         Chasis = txtChassis.Text,
                         Estado = true
@@ -160,7 +172,7 @@ namespace Core.DataEntry
                         vehiculoObj.IdCliente = Convert.ToInt32(cmbCliente.SelectedValue);
                         vehiculoObj.Marca = txtMarca.Text;
                         vehiculoObj.Modelo = txtModelo.Text;
-                        vehiculoObj.Año = Convert.ToInt32(nudAño.Value);
+                        vehiculoObj.Año = Convert.ToInt16(nudAño.Value);
                         vehiculoObj.Placa = txtPlaca.Text;
                         vehiculoObj.Chasis = txtChassis.Text;
 

@@ -16,10 +16,10 @@ namespace Core.Models
 
         public string Modelo { get; set; }
 
-        public int Año { get; set; }
+        public short Año { get; set; }
 
         public string Placa { get; set; }
-
+        [Column("Chassis")]
         public string Chasis { get; set; }
 
         public bool Estado { get; set; } = true;

@@ -84,6 +84,7 @@
             this.surcursalToolStripMenuItem.Name = "surcursalToolStripMenuItem";
             this.surcursalToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
             this.surcursalToolStripMenuItem.Text = "Sucursal";
+            this.surcursalToolStripMenuItem.Click += new System.EventHandler(this.sucursalToolStripMenuItem_Click);
             // 
             // productoToolStripMenuItem
             // 
