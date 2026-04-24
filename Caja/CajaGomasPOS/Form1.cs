@@ -704,7 +704,7 @@ namespace CajaGomasPOS
         }
         private void btnCierreCaja_Click(object sender, EventArgs e)
         {
-            if (TotalEfectivoDelDia == 0)
+            if (ResumenVentasDia.Count == 0)
             {
                 if (MessageBox.Show("No se registraron ventas hoy. ¿Desea salir del sistema?", "Cierre", MessageBoxButtons.YesNo, MessageBoxIcon.Information) == DialogResult.Yes)
                 {
@@ -754,7 +754,11 @@ namespace CajaGomasPOS
             // Modifica esta partecita dentro de tu btnCierreCaja_Click:
             btnCerrarTurno.Click += (s, ev) =>
             {
-                ImprimirTicketCuadre(); // <--- AGREGAMOS LA IMPRESIÓN AQUÍ
+                decimal efectivoContado = Convert.ToDecimal(txtContado.Text);
+                decimal totalEsperado = FondoInicial + FondoExtra + TotalEfectivoDelDia;
+                decimal diferencia = efectivoContado - totalEsperado;
+
+                ImprimirTicketCuadre(efectivoContado, totalEsperado, diferencia);
                 MessageBox.Show("Turno cerrado correctamente. Vuelva pronto.", "Cierre Exitoso");
                 Application.Exit();
             };
@@ -762,7 +766,7 @@ namespace CajaGomasPOS
             formCuadre.Controls.Add(lblInstruccion); formCuadre.Controls.Add(txtContado); formCuadre.Controls.Add(btnVerificar); formCuadre.Controls.Add(lblResultado); formCuadre.Controls.Add(btnCerrarTurno);
             formCuadre.ShowDialog();
         }
-        private void ImprimirTicketCuadre()
+        private void ImprimirTicketCuadre(decimal efectivoContado, decimal totalEsperado, decimal diferencia)
         {
             System.Drawing.Printing.PrintDocument docCuadre = new System.Drawing.Printing.PrintDocument();
 
@@ -790,6 +794,21 @@ namespace CajaGomasPOS
                 decimal totalGaveta = FondoInicial + FondoExtra + TotalEfectivoDelDia;
                 ev.Graphics.DrawString($"TOTAL EN GAVETA:  {totalGaveta:C2}", fontTitulo, Brushes.Black, 10, y); y += 40;
 
+                ev.Graphics.DrawString("--- CIERRE ---", fontNormal, Brushes.Black, 10, y); y += 20;
+                ev.Graphics.DrawString($"Monto Esperado:   {totalEsperado:C2}", fontNormal, Brushes.Black, 10, y); y += 20;
+                ev.Graphics.DrawString($"Monto Contado:    {efectivoContado:C2}", fontNormal, Brushes.Black, 10, y); y += 20;
+                if (diferencia == 0)
+                {
+                    ev.Graphics.DrawString("DIFERENCIA:       $0.00  ✓ CUADRE PERFECTO", fontNormal, Brushes.Black, 10, y); y += 25;
+                }
+                else if (diferencia > 0)
+                {
+                    ev.Graphics.DrawString($"SOBRANTE:         {diferencia:C2}", fontNormal, Brushes.Black, 10, y); y += 25;
+                }
+                else
+                {
+                    ev.Graphics.DrawString($"FALTANTE:         {Math.Abs(diferencia):C2}  *** ALERTA ***", fontNormal, Brushes.Black, 10, y); y += 25;
+                }
                 // 2. EL DESGLOSE DE ARTÍCULOS VENDIDOS
                 ev.Graphics.DrawString("--- ARTICULOS VENDIDOS HOY ---", fontNormal, Brushes.Black, 10, y); y += 20;
                 if (ResumenVentasDia.Count == 0)
