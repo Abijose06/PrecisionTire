@@ -14,9 +14,12 @@ namespace Core.DataEntry
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
 
-            // Mostrar login primero
             FormLogin login = new FormLogin();
             if (login.ShowDialog() != DialogResult.OK)
+                return;
+
+            // ← NUEVO: doble verificación de rol
+            if (login.RolUsuario != "Administrador")
                 return;
 
             Application.Run(new frmPrincipal());

@@ -42,9 +42,21 @@ namespace Core.DataEntry
                         var jsonString = await response.Content.ReadAsStringAsync();
                         dynamic usuario = JsonConvert.DeserializeObject(jsonString);
 
+                        // ← NUEVO: verificar rol antes de permitir entrada
+                        if (usuario.Rol != "Administrador")
+                        {
+                            MessageBox.Show(
+                                "Acceso denegado.\nEsta aplicación es exclusiva para Administradores.",
+                                "Sin Permiso",
+                                MessageBoxButtons.OK,
+                                MessageBoxIcon.Stop);
+                            btnIngresar.Enabled = true;
+                            btnIngresar.Text = "Iniciar Sesión";
+                            return;
+                        }
+
                         this.RolUsuario = usuario.Rol;
                         MessageBox.Show("Bienvenido, " + usuario.NombreCompleto, "Acceso Correcto", MessageBoxButtons.OK, MessageBoxIcon.Information);
-
                         this.DialogResult = DialogResult.OK;
                         this.Close();
                     }
