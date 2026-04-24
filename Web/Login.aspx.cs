@@ -19,11 +19,16 @@ namespace WebGomas
         {
             if (!IsPostBack)
             {
-                // Agregamos HttpContext.Current para evitar el error CS0103
-                if (HttpContext.Current.Session["usuario"] != null)
+                // Si ya hay sesión activa, redirigir al catálogo
+                if (Session["usuario"] != null)
                 {
-                    HttpContext.Current.Response.Redirect("Productos.aspx");
+                    Response.Redirect("Productos.aspx");
+                    return;
                 }
+
+                // Si no hay sesión, limpiar por si quedó algo
+                Session.Clear();
+                Session.Abandon();
             }
         }
 

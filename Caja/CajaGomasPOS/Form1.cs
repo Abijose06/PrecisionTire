@@ -115,6 +115,7 @@ namespace CajaGomasPOS
             if (pantallaLogin.ShowDialog() == DialogResult.OK)
             {
                 estaLogueado = true;
+                cmbEmpleado.Text = pantallaLogin.NombreUsuario;
                 if (pantallaLogin.RolUsuario == "Admin" || pantallaLogin.RolUsuario == "Administrador")
                 {
                     ModoSupervisor = true;
@@ -225,6 +226,8 @@ namespace CajaGomasPOS
         {
             try
             {
+                System.Net.ServicePointManager.ServerCertificateValidationCallback = delegate { return true; };
+                System.Net.ServicePointManager.SecurityProtocol = System.Net.SecurityProtocolType.Tls12;
                 using (var client = new HttpClient())
                 {
                     client.BaseAddress = new Uri(UrlIntegracion);
@@ -241,17 +244,6 @@ namespace CajaGomasPOS
                         cmbCliente.ValueMember = "Id";
                     }
 
-                    // Consumimos Empleados
-                    var resEmp = await client.GetAsync("api/usuarios/empleados");
-                    if (resEmp.IsSuccessStatusCode)
-                    {
-                        var json = await resEmp.Content.ReadAsStringAsync();
-                        // 🛠️ ARREGLO: Deserializamos usando la clase estricta
-                        var listaEmpleados = JsonConvert.DeserializeObject<List<UsuarioCombo>>(json);
-                        cmbEmpleado.DataSource = listaEmpleados;
-                        cmbEmpleado.DisplayMember = "Nombre";
-                        cmbEmpleado.ValueMember = "Id";
-                    }
                 }
             }
             catch (Exception ex) { MessageBox.Show("Error de red al cargar personal: " + ex.Message); }
@@ -476,15 +468,18 @@ namespace CajaGomasPOS
                 reciboDevuelta = cobro.CambioDevuelto;
 
                 // 2. Preparamos el paquete de datos con lo que el cliente compró
+                int idClienteVal = cmbCliente.SelectedValue != null ? Convert.ToInt32(cmbCliente.SelectedValue) : 1003;
+                int idEmpleadoVal = 3;
+
                 var peticionVenta = new
                 {
-                    IdCliente = Convert.ToInt32(cmbCliente.SelectedValue),
-                    IdEmpleado = Convert.ToInt32(cmbEmpleado.SelectedValue),
+                    IdCliente = idClienteVal,
+                    IdEmpleado = idEmpleadoVal,
                     IdSucursal = 1,
                     IdVehiculo = 1,
                     MetodoPago = reciboMetodo,
-                    TotalGeneral = cobro.TotalPagar, // Guardamos el total para el modo offline
-                    Fecha = DateTime.Now,            // Guardamos la fecha exacta para el modo offline
+                    TotalGeneral = cobro.TotalPagar,
+                    Fecha = DateTime.Now,
                     Detalles = new List<object>()
                 };
 
@@ -512,6 +507,7 @@ namespace CajaGomasPOS
                     using (var client = new HttpClient())
                     {
                         client.BaseAddress = new Uri(UrlIntegracion);
+                        client.Timeout = TimeSpan.FromSeconds(4); // ← AGREGAR ESTA LÍNEA
                         var content = new StringContent(JsonConvert.SerializeObject(peticionVenta), Encoding.UTF8, "application/json");
 
                         var response = await client.PostAsync("api/facturacion/procesar", content);
@@ -711,25 +707,24 @@ namespace CajaGomasPOS
                     decimal efectivoContado = Convert.ToDecimal(txtContado.Text);
                     decimal totalEsperado = FondoCaja + TotalEfectivoDelDia;
                     decimal diferencia = efectivoContado - totalEsperado;
+                    string mensajeDiferencia = diferencia > 0 ? $"SOBRANTE: {diferencia:C}" : $"FALTANTE: {Math.Abs(diferencia):C}";
 
                     if (diferencia == 0)
                     {
                         lblResultado.ForeColor = Color.DarkGreen;
                         lblResultado.Text = $"Efectivo Esperado: {totalEsperado:C}\nFísico Contado: {efectivoContado:C}\n\n✅ CUADRE PERFECTO.\nYa puede cerrar el sistema.";
-                        btnCerrarTurno.Enabled = true;
                         btnCerrarTurno.BackColor = Color.LimeGreen;
-                        txtContado.ReadOnly = true;
-                        btnVerificar.Enabled = false;
                     }
                     else
                     {
-                        string mensajeDiferencia = diferencia > 0 ? $"SOBRANTE: {diferencia:C}" : $"FALTANTE: {Math.Abs(diferencia):C}";
                         lblResultado.ForeColor = Color.Crimson;
-                        lblResultado.Text = $"Efectivo Esperado: {totalEsperado:C}\nFísico Contado: {efectivoContado:C}\n\n❌ {mensajeDiferencia}\n\nERROR: El dinero no coincide.\nNo se permite el cierre hasta cuadrar.";
-                        btnCerrarTurno.Enabled = false;
-                        btnCerrarTurno.BackColor = Color.LightGray;
-                        txtContado.Focus(); txtContado.SelectAll();
+                        lblResultado.Text = $"Efectivo Esperado: {totalEsperado:C}\nFísico Contado: {efectivoContado:C}\n\n⚠️ {mensajeDiferencia}\n\nPuede cerrar el sistema pero la diferencia quedará registrada.";
+                        btnCerrarTurno.BackColor = Color.Orange;
                     }
+
+                    btnCerrarTurno.Enabled = true;
+                    txtContado.ReadOnly = true;
+                    btnVerificar.Enabled = false;
                 }
                 catch { MessageBox.Show("Por favor, ingrese un monto numérico válido.", "Error de formato"); }
             };
@@ -852,9 +847,10 @@ namespace CajaGomasPOS
             gfx.DrawString("¡Gracias por su preferencia!", fontBold, Brushes.Black, new RectangleF(0, y, ancho, 20), formatoCentro); y += 20;
             gfx.DrawString("Conserve su recibo para garantía", fontNormal, Brushes.Black, new RectangleF(0, y, ancho, 20), formatoCentro);
         }
-        private void EjecutarSincronizacion()
+
+        
+        private async Task EjecutarSincronizacion()
         {
-            // 1. Verificamos si hay facturas guardadas en el JSON
             int pendientes = GestorOffline.ContarPendientes();
             if (pendientes == 0)
             {
@@ -864,46 +860,48 @@ namespace CajaGomasPOS
 
             var facturasOffline = GestorOffline.LeerFacturasLocales();
             int sincronizadas = 0;
+            int fallidas = 0;
 
-            // 🚨 TU CADENA DE CONEXIÓN REAL (Extraída de tu Config)
-            string conexionBD = @"Server=(localdb)\MSSQLLocalDB;Database=GomasDB;Trusted_Connection=True;";
-
-            using (System.Data.SqlClient.SqlConnection con = new System.Data.SqlClient.SqlConnection(conexionBD))
+            try
             {
-                try
+                System.Net.ServicePointManager.ServerCertificateValidationCallback = delegate { return true; };
+                System.Net.ServicePointManager.SecurityProtocol = System.Net.SecurityProtocolType.Tls12;
+                using (var client = new HttpClient())
                 {
-                    con.Open(); // Abrimos la conexión al SQL
+                    client.BaseAddress = new Uri(UrlIntegracion);
 
-                    // 2. Recorremos cada factura guardada
                     foreach (dynamic factura in facturasOffline)
                     {
-                        decimal total = Convert.ToDecimal(factura.TotalGeneral);
-                        string metodo = factura.MetodoPago.ToString();
-                        DateTime fecha = Convert.ToDateTime(factura.Fecha);
-
-                        // Preparamos el Query para insertar en la tabla real
-                        string query = "INSERT INTO tblFactura (Fecha, Impuesto, EstadoFactura, MetodoPago, IdCliente, IdSucursal, Estado) " +
-                                       "VALUES (@fecha, 18, 'Pagada', @metodo, 1, 1, 1)";
-
-                        using (System.Data.SqlClient.SqlCommand cmd = new System.Data.SqlClient.SqlCommand(query, con))
+                        try
                         {
-                            cmd.Parameters.AddWithValue("@fecha", fecha);
-                            cmd.Parameters.AddWithValue("@metodo", metodo);
-                            cmd.ExecuteNonQuery(); // ¡Guardado en la Base de Datos!
+                            var content = new StringContent(JsonConvert.SerializeObject(factura), Encoding.UTF8, "application/json");
+                            var response = await client.PostAsync("api/Facturacion/Procesar", content);
+
+                            if (response.IsSuccessStatusCode)
+                                sincronizadas++;
+                            else
+                                fallidas++;
                         }
-                        sincronizadas++;
+                        catch { fallidas++; }
                     }
-
-                    // 3. Si todo salió perfecto, borramos el JSON para no duplicar ventas
-                    GestorOffline.LimpiarFacturasSincronizadas();
-
-                    MessageBox.Show($"¡Sincronización Exitosa!\nSe subieron {sincronizadas} facturas a la Base de Datos GomasDB.", "Éxito", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 }
-                catch (Exception ex)
+
+                if (fallidas == 0)
                 {
-                    MessageBox.Show("Error al sincronizar. Revisa si el servidor SQL está encendido.\nDetalle: " + ex.Message, "Error de Red", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    GestorOffline.LimpiarFacturasSincronizadas();
+                    MessageBox.Show($"¡Sincronización Exitosa!\nSe subieron {sincronizadas} facturas.", "Éxito", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+                else
+                {
+                    MessageBox.Show($"Sincronizadas: {sincronizadas} | Fallidas: {fallidas}", "Resultado parcial", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 }
             }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Error al sincronizar: " + ex.Message + "\n\nInner: " + (ex.InnerException?.Message ?? "ninguno"), "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         }
+
+        
     }
 }

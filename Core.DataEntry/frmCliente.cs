@@ -1,30 +1,73 @@
 ﻿using Core.Helpers;
 using Core.Models;
 using System;
-using System.Collections.Generic;
-using System.ComponentModel;
 using System.Data;
-using System.Drawing;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 
 namespace Core.DataEntry
 {
     public partial class frmCliente : Form
     {
+        // Variable para saber qué cliente estamos editando o eliminando
+        private int idUsuarioSeleccionado = 0;
+
         public frmCliente()
         {
             InitializeComponent();
         }
 
+        private void frmCliente_Load(object sender, EventArgs e)
+        {
+            CargarClientes(); // Cargar la tabla al abrir el formulario
+        }
+
+        // --- READ: Leer datos de la BD ---
+        private void CargarClientes()
+        {
+            try
+            {
+                using (var db = new GomasContext())
+                {
+                    // Hacemos un JOIN entre Usuarios y Clientes para traer todo junto
+                    var query = from u in db.Usuarios
+                                join c in db.Clientes on u.IdUsuario equals c.IdUsuario
+                                where u.Rol == "Cliente" && u.Estado == true // Solo los activos
+                                select new
+                                {
+                                    IdUsuario = u.IdUsuario,
+                                    TipoDocumento = u.TipoDocumento,
+                                    Documento = u.Documento,
+                                    Nombres = u.Nombres,
+                                    Apellidos = u.Apellidos,
+                                    Telefono = u.Telefono,
+                                    Correo = u.Correo,
+                                    Direccion = c.Direccion
+                                };
+
+                    dgvClientes.DataSource = query.ToList();
+
+                    // Ocultar la columna del ID para que el usuario no la vea
+                    if (dgvClientes.Columns["IdUsuario"] != null)
+                        dgvClientes.Columns["IdUsuario"].Visible = false;
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Error al cargar los clientes: " + ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        // --- CREATE: Insertar ---
         private void btnInsertarCliente_Click(object sender, EventArgs e)
         {
-            // 1. Validación básica para evitar que se vaya en blanco
-            if (string.IsNullOrWhiteSpace(txtDocumento.Text) ||
-                string.IsNullOrWhiteSpace(txtContraseña.Text) ||
-                string.IsNullOrWhiteSpace(txtNombres.Text))
+            if (idUsuarioSeleccionado != 0)
+            {
+                MessageBox.Show("Actualmente tiene un cliente seleccionado. Para agregar uno nuevo, presione Limpiar primero.", "Aviso", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(txtDocumento.Text) || string.IsNullOrWhiteSpace(txtContraseña.Text) || string.IsNullOrWhiteSpace(txtNombres.Text))
             {
                 MessageBox.Show("Por favor llene los campos obligatorios.", "Advertencia", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
@@ -32,40 +75,30 @@ namespace Core.DataEntry
 
             try
             {
-                // 2. Instanciamos el contexto de Entity Framework
                 using (var db = new GomasContext())
                 {
-                    // 3. Iniciamos la transacción (Todo o Nada)
                     using (var transaccion = db.Database.BeginTransaction())
                     {
                         try
                         {
-                            // 4. Creamos el objeto Usuario primero
                             var nuevoUsuario = new Usuario
                             {
-                                // Convertimos el texto a número (Ej. 1 para Cédula)
                                 TipoDocumento = Convert.ToInt32(txtTipoDocumento.Text),
                                 Documento = txtDocumento.Text,
-
-                                // Usamos tu clase de seguridad para hashear la contraseña
                                 ClaveHash = SeguridadHelper.CalcularHash(txtContraseña.Text),
-
-                                Rol = "Cliente", // Fijo por defecto como pediste
+                                Rol = "Cliente",
                                 Nombres = txtNombres.Text,
                                 Apellidos = txtApellidos.Text,
                                 Telefono = txtTelefono.Text,
                                 Correo = txtCorreo.Text,
-                                Estado = true // Lo creamos activo por defecto
+                                Estado = true
                             };
 
-                            // Lo agregamos a la BD y guardamos para que SQL nos genere el IdUsuario
                             db.Usuarios.Add(nuevoUsuario);
                             db.SaveChanges();
 
-                            // 5. Ahora creamos el objeto Cliente
                             var nuevoCliente = new Cliente
                             {
-                                // ¡AQUÍ ESTÁ LA MAGIA! Tomamos el ID que se acaba de generar
                                 IdUsuario = nuevoUsuario.IdUsuario,
                                 Direccion = txtDireccion.Text
                             };
@@ -73,32 +106,136 @@ namespace Core.DataEntry
                             db.Clientes.Add(nuevoCliente);
                             db.SaveChanges();
 
-                            // 6. Si llegamos aquí sin errores, confirmamos el guardado de ambas tablas
                             transaccion.Commit();
-
-                            MessageBox.Show("El cliente ha sido registrado exitosamente en el sistema.", "Operación Exitosa", MessageBoxButtons.OK, MessageBoxIcon.Information);
-
-                            // Limpiamos los campos para el siguiente registro
+                            MessageBox.Show("Cliente registrado exitosamente.", "Éxito", MessageBoxButtons.OK, MessageBoxIcon.Information);
                             LimpiarCampos();
+                            CargarClientes(); // Refrescar la tabla
                         }
                         catch (Exception ex)
                         {
-                            // Si algo falló (ej. error de SQL), cancelamos todo
                             transaccion.Rollback();
-                            MessageBox.Show("Error al guardar en la base de datos: " + ex.Message, "Error de BD", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                            MessageBox.Show("Error al guardar en la base de datos: " + ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                         }
                     }
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Verifique que el Tipo de Documento sea un número válido. Error: " + ex.Message, "Error de Datos", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show("Verifique los datos ingresados. Error: " + ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
-        // Método auxiliar para vaciar las cajas de texto rápidamente
+        // --- UPDATE: Editar ---
+        private void btnEditar_Click(object sender, EventArgs e)
+        {
+            if (idUsuarioSeleccionado == 0)
+            {
+                MessageBox.Show("Por favor, seleccione un cliente de la tabla para editarlo.", "Advertencia", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            try
+            {
+                using (var db = new GomasContext())
+                {
+                    // Buscamos el usuario y su registro de cliente
+                    var usuarioObj = db.Usuarios.Find(idUsuarioSeleccionado);
+                    var clienteObj = db.Clientes.FirstOrDefault(c => c.IdUsuario == idUsuarioSeleccionado);
+
+                    if (usuarioObj != null && clienteObj != null)
+                    {
+                        usuarioObj.TipoDocumento = Convert.ToInt32(txtTipoDocumento.Text);
+                        usuarioObj.Documento = txtDocumento.Text;
+                        usuarioObj.Nombres = txtNombres.Text;
+                        usuarioObj.Apellidos = txtApellidos.Text;
+                        usuarioObj.Telefono = txtTelefono.Text;
+                        usuarioObj.Correo = txtCorreo.Text;
+                        clienteObj.Direccion = txtDireccion.Text;
+
+                        // Solo cambiamos la contraseña si escribió algo nuevo
+                        if (!string.IsNullOrWhiteSpace(txtContraseña.Text))
+                        {
+                            usuarioObj.ClaveHash = SeguridadHelper.CalcularHash(txtContraseña.Text);
+                        }
+
+                        db.SaveChanges();
+                        MessageBox.Show("Cliente actualizado correctamente.", "Éxito", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                        LimpiarCampos();
+                        CargarClientes();
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Error al actualizar: " + ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        // --- DELETE (Soft Delete): Eliminar ---
+        private void btnEliminar_Click(object sender, EventArgs e)
+        {
+            if (idUsuarioSeleccionado == 0)
+            {
+                MessageBox.Show("Por favor, seleccione un cliente de la tabla para eliminarlo.", "Advertencia", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            DialogResult dialogo = MessageBox.Show("¿Está seguro que desea eliminar este cliente?", "Confirmar Eliminación", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+
+            if (dialogo == DialogResult.Yes)
+            {
+                try
+                {
+                    using (var db = new GomasContext())
+                    {
+                        var usuarioObj = db.Usuarios.Find(idUsuarioSeleccionado);
+                        if (usuarioObj != null)
+                        {
+                            usuarioObj.Estado = false; // Eliminación lógica
+                            db.SaveChanges();
+
+                            MessageBox.Show("Cliente eliminado del sistema.", "Éxito", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                            LimpiarCampos();
+                            CargarClientes();
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show("Error al eliminar: " + ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
+        }
+
+        // --- SELECCIONAR de la tabla ---
+        private void dgvClientes_CellClick(object sender, DataGridViewCellEventArgs e)
+        {
+            // Verificamos que no haya hecho clic en los encabezados
+            if (e.RowIndex >= 0)
+            {
+                DataGridViewRow fila = dgvClientes.Rows[e.RowIndex];
+
+                idUsuarioSeleccionado = Convert.ToInt32(fila.Cells["IdUsuario"].Value);
+                txtTipoDocumento.Text = fila.Cells["TipoDocumento"].Value?.ToString();
+                txtDocumento.Text = fila.Cells["Documento"].Value?.ToString();
+                txtNombres.Text = fila.Cells["Nombres"].Value?.ToString();
+                txtApellidos.Text = fila.Cells["Apellidos"].Value?.ToString();
+                txtTelefono.Text = fila.Cells["Telefono"].Value?.ToString();
+                txtCorreo.Text = fila.Cells["Correo"].Value?.ToString();
+                txtDireccion.Text = fila.Cells["Direccion"].Value?.ToString();
+
+                txtContraseña.Clear(); // No cargamos el hash por seguridad
+            }
+        }
+
+        private void btnLimpiar_Click(object sender, EventArgs e)
+        {
+            LimpiarCampos();
+        }
+
         private void LimpiarCampos()
         {
+            idUsuarioSeleccionado = 0; // Reseteamos la selección
             txtTipoDocumento.Clear();
             txtDocumento.Clear();
             txtContraseña.Clear();
@@ -107,6 +244,8 @@ namespace Core.DataEntry
             txtTelefono.Clear();
             txtCorreo.Clear();
             txtDireccion.Clear();
+            dgvClientes.ClearSelection();
+            txtTipoDocumento.Focus();
         }
     }
 }

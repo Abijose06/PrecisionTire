@@ -15,12 +15,12 @@ namespace WebGomas
         private string UrlIntegracion = ConfigurationManager.AppSettings["UrlIntegracion"];
 
 
-        protected async void Page_Load(object sender, EventArgs e)
+        protected void Page_Load(object sender, EventArgs e)
         {
-            if (!IsPostBack)
-            {
-                await CargarCatalogoWeb();
-            }
+            if (Session["usuario"] != null)
+                Response.Redirect("Productos.aspx");
+            else
+                Response.Redirect("Login.aspx");
         }
 
         private async Task CargarCatalogoWeb()

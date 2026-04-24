@@ -44,8 +44,13 @@ namespace WebGomas
             gvConfirmacion.DataSource = carrito;
             gvConfirmacion.DataBind();
 
-            decimal total = carrito.Sum(item => item.Subtotal);
-            lblTotal.Text = total.ToString("C2");
+            decimal subtotal = carrito.Sum(item => item.Subtotal);
+            decimal itbis = Math.Round(subtotal * 0.18m, 2);
+            decimal totalConItbis = Math.Round(subtotal + itbis, 2);
+
+            lblSubtotal.Text = subtotal.ToString("C2");
+            lblItbis.Text = itbis.ToString("C2");
+            lblTotal.Text = totalConItbis.ToString("C2");
             lblMensaje.Text = string.Empty;
 
             pnlMensajeExito.Visible = false;
@@ -62,15 +67,28 @@ namespace WebGomas
                 return;
             }
 
-            decimal total = carrito.Sum(item => item.Subtotal);
-            bool guardado = EnviarPedidoACore(carrito);
+            decimal subtotal = carrito.Sum(item => item.Subtotal);
+            decimal itbis = Math.Round(subtotal * 0.18m, 2);
+            decimal totalConItbis = Math.Round(subtotal + itbis, 2);
+
+            int idFactura = EnviarPedidoACore(carrito);
 
             Session["carrito"] = null;
 
-            lblTotal.Text = total.ToString("C2");
-            lblMensaje.Text = guardado
-                ? "¡Compra realizada con éxito!"
-                : "¡Compra registrada! (modo offline)";
+            lblSubtotal.Text = subtotal.ToString("C2");
+            lblItbis.Text = itbis.ToString("C2");
+            lblTotal.Text = totalConItbis.ToString("C2");
+
+            if (idFactura > 0)
+            {
+                lblMensaje.Text = "¡Compra realizada con éxito!";
+                lnkVerFactura.NavigateUrl = "Comprobante.aspx?id=" + idFactura + "&print=true";
+            }
+            else
+            {
+                lblMensaje.Text = "¡Compra registrada! (modo offline)";
+                lnkVerFactura.NavigateUrl = "Historial.aspx";
+            }
 
             pnlMensajeExito.Visible = true;
             btnConfirmar.Visible = false;
@@ -78,7 +96,7 @@ namespace WebGomas
             pnlAccionesFinales.Visible = true;
         }
 
-        private bool EnviarPedidoACore(List<CarritoItem> carrito)
+        private int EnviarPedidoACore(List<CarritoItem> carrito)
         {
             try
             {
@@ -89,13 +107,13 @@ namespace WebGomas
                     int.TryParse(Session["idCliente"].ToString(), out idCliente);
 
                 if (idCliente <= 0)
-                    return false;
+                    return 0;
 
                 var request = new
                 {
                     IdCliente = idCliente,
                     IdSucursal = idSucursal,
-                    MetodoPago = "Efectivo",
+                    MetodoPago = ddlMetodoPago.SelectedValue,
                     IdVehiculo = 1,
                     Detalles = carrito.Select(item => new
                     {
@@ -114,14 +132,19 @@ namespace WebGomas
 
                 using (var client = new HttpClient())
                 {
-                    var response = client.PostAsync(UrlIntegracion + "facturacion/procesar", content).Result;
-                    return response.IsSuccessStatusCode;
+                    var response = client.PostAsync(UrlIntegracion + "Facturacion/Procesar", content).Result;
+
+                    if (response.IsSuccessStatusCode)
+                    {
+                        var jsonResp = response.Content.ReadAsStringAsync().Result;
+                        var resultado = JsonConvert.DeserializeObject<dynamic>(jsonResp);
+                        return (int)resultado.NumeroFactura;
+                    }
                 }
             }
-            catch
-            {
-                return false;
-            }
+            catch { }
+
+            return 0;
         }
 
         protected void btnVolverCarrito_Click(object sender, EventArgs e)

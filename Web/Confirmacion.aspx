@@ -574,6 +574,43 @@
             .btn-ver-pedidos { max-width: 100%; }
         }
 
+        @media print {
+    .header,
+    .header-nav,
+    .header-user,
+    .progreso-barra,
+    .pagina-header,
+    .contenedor-boton,
+    .acciones-finales,
+    .page-footer {
+        display: none !important;
+    }
+
+    body { background: white !important; }
+
+    .card-confirmacion {
+        box-shadow: none !important;
+        border: none !important;
+    }
+
+    .card-cabecera {
+        background: black !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    .pagina::before {
+        content: "PRECISIONTIRE — Comprobante de Compra";
+        display: block;
+        font-size: 18px;
+        font-weight: bold;
+        text-align: center;
+        margin-bottom: 20px;
+        border-bottom: 2px solid black;
+        padding-bottom: 10px;
+    }
+}
+
     </style>
 </head>
 <body>
@@ -726,57 +763,87 @@
 
                     </asp:GridView>
 
-                    <!-- Total -->
-                    <div class="seccion-total">
-                        <div class="total-etiqueta">
-                            Total a pagar
-                            <small>IVA incluido · Envío gratis</small>
-                        </div>
-                        <asp:Label
-                            ID="lblTotal"
-                            runat="server"
-                            CssClass="label-total" />
-                    </div>
+                    <!-- Total con desglose ITBIS -->
+<div class="seccion-total" style="flex-direction:column; align-items:stretch; gap:10px;">
+    <div style="display:flex; justify-content:space-between; font-size:14px; color:#6c757d; padding:4px 0;">
+        <span>Subtotal sin ITBIS</span>
+        <asp:Label ID="lblSubtotal" runat="server" />
+    </div>
+    <div style="display:flex; justify-content:space-between; font-size:14px; color:#6c757d; padding:4px 0; border-bottom:1px solid #e9ecef; padding-bottom:12px;">
+        <span>ITBIS (18%)</span>
+        <asp:Label ID="lblItbis" runat="server" />
+    </div>
+    <div style="display:flex; justify-content:space-between; align-items:center; padding-top:4px;">
+        <div class="total-etiqueta">
+            Total a pagar
+            <small>ITBIS incluido · Envío gratis</small>
+        </div>
+        <asp:Label
+            ID="lblTotal"
+            runat="server"
+            CssClass="label-total" />
+    </div>
+</div> 
 
-                    <!-- Botones principales -->
-                    <div class="contenedor-boton">
-                        <asp:Button
-                            ID="btnConfirmar"
-                            runat="server"
-                            Text="✓  Confirmar compra"
-                            CssClass="btn-confirmar"
-                            OnClick="btnConfirmar_Click" />
+                    <!-- Método de pago -->
+<div style="margin-bottom: 16px;">
+    <label style="font-size:13px; font-weight:600; color:#6c757d; display:block; margin-bottom:8px;">
+        Método de pago
+    </label>
+    <asp:DropDownList ID="ddlMetodoPago" runat="server" 
+        style="width:100%; padding:10px 14px; border:2px solid #e9ecef; border-radius:12px; font-size:14px; color:#1a1a2e; background:white; cursor:pointer;">
+        <asp:ListItem Value="Efectivo">💵 Efectivo</asp:ListItem>
+        <asp:ListItem Value="Tarjeta">💳 Tarjeta</asp:ListItem>
+        <asp:ListItem Value="Transferencia">🏦 Transferencia</asp:ListItem>
+    </asp:DropDownList>
+</div>
 
-                        <asp:Button
-                            ID="btnVolverCarrito"
-                            runat="server"
-                            Text="← Volver al carrito"
-                            CssClass="btn-secundario"
-                            OnClick="btnVolverCarrito_Click"
-                            CausesValidation="false" />
+<!-- Botones principales -->
+<div class="contenedor-boton">
+    <asp:Button
+        ID="btnConfirmar"
+        runat="server"
+        Text="✓  Confirmar compra"
+        CssClass="btn-confirmar"
+        OnClick="btnConfirmar_Click" />
 
-                        <p class="boton-nota">
-                            <span>🔒 Pago seguro</span> · Tu información está protegida
-                        </p>
-                    </div>
+    <asp:Button
+        ID="btnVolverCarrito"
+        runat="server"
+        Text="← Volver al carrito"
+        CssClass="btn-secundario"
+        OnClick="btnVolverCarrito_Click"
+        CausesValidation="false" />
+
+    <p class="boton-nota">
+        <span>🔒 Pago seguro</span> · Tu información está protegida
+    </p>
+</div>
 
                     <!-- Acciones post-confirmación -->
-                    <asp:Panel ID="pnlAccionesFinales" runat="server" Visible="false">
-                        <div class="acciones-finales">
-                            <div class="acciones-finales-titulo">
-                                ¿Qué deseas hacer ahora?
-                            </div>
-                            <div class="acciones-finales-botones">
-                                <a href="Productos.aspx" class="btn-secundario">
-                                    🏷️ Seguir comprando
-                                </a>
-                                <a href="Historial.aspx" class="btn-ver-pedidos">
-                                    📋 Ver mis pedidos
-                                </a>
-                            </div>
-                        </div>
-                    </asp:Panel>
-                    <%-- ↑ cierra pnlAccionesFinales --%>
+<asp:Panel ID="pnlAccionesFinales" runat="server" Visible="false">
+    <div class="acciones-finales">
+        <div class="acciones-finales-titulo">
+            ¿Qué deseas hacer ahora?
+        </div>
+        <div class="acciones-finales-botones">
+            <a href="Productos.aspx" class="btn-secundario">
+                🏷️ Seguir comprando
+            </a>
+            <asp:HyperLink
+    ID="lnkVerFactura"
+    runat="server"
+    CssClass="btn-ver-pedidos"
+    Target="_blank">
+    🖨️ Imprimir comprobante
+</asp:HyperLink>
+            <a href="Historial.aspx" class="btn-ver-pedidos">
+                📋 Ver mis pedidos
+            </a>
+        </div>
+    </div>
+</asp:Panel>
+<%-- ↑ cierra pnlAccionesFinales --%>
 
                 </div>
                 <%-- ↑ cierra card-cuerpo --%>

@@ -17,6 +17,7 @@ namespace CajaGomasPOS
 
         // Variable pública intacta para que la Caja sepa quién entró
         public string RolUsuario = "";
+        public string NombreUsuario = "";
         private string UrlIntegracion = ConfigurationManager.AppSettings["UrlIntegracion"];
 
 
@@ -29,7 +30,7 @@ namespace CajaGomasPOS
             // Preparamos los datos
             var peticionLogin = new
             {
-                Documento = txtUsuario.Text,
+                Correo = txtUsuario.Text,
                 Password = txtPassword.Text
             };
 
@@ -52,6 +53,7 @@ namespace CajaGomasPOS
                         dynamic datosUsuario = JsonConvert.DeserializeObject(jsonString);
 
                         this.RolUsuario = datosUsuario.Rol;
+                        this.NombreUsuario = (string)datosUsuario.NombreCompleto;
                         MessageBox.Show("Conexión Establecida.\nBienvenido, " + datosUsuario.NombreCompleto, "Modo Online", MessageBoxButtons.OK, MessageBoxIcon.Information);
 
                         conexionExitosa = true;

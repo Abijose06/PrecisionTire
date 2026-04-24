@@ -8,14 +8,17 @@ namespace Core.DataEntry
 {
     internal static class Program
     {
-        /// <summary>
-        /// The main entry point for the application.
-        /// </summary>
         [STAThread]
         static void Main()
         {
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
+
+            // Mostrar login primero
+            FormLogin login = new FormLogin();
+            if (login.ShowDialog() != DialogResult.OK)
+                return;
+
             Application.Run(new frmPrincipal());
         }
     }
