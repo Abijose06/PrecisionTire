@@ -10,15 +10,23 @@ namespace Core.DataEntry
     {
         // Variable para saber qué producto estamos editando o eliminando
         private int idProductoSeleccionado = 0;
+        private readonly string _rol;
 
-        public frmProducto()
+        public frmProducto(string rol)
         {
             InitializeComponent();
+            _rol = rol;
         }
 
         private void frmProducto_Load(object sender, EventArgs e)
         {
-            CargarProductos(); // Cargar la tabla automáticamente al abrir el formulario
+            CargarProductos();
+
+            bool esAdmin = _rol == "Administrador";
+            btnInsertarProducto.Visible = esAdmin;
+            btnEditar.Visible = esAdmin;
+            btnEliminar.Visible = esAdmin;
+            btnLimpiar.Visible = esAdmin;
         }
 
         // --- READ: Leer datos de la BD ---

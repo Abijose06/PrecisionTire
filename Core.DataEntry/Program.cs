@@ -14,15 +14,16 @@ namespace Core.DataEntry
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
 
+            // Program.cs
             FormLogin login = new FormLogin();
+
             if (login.ShowDialog() != DialogResult.OK)
                 return;
 
-            // ← NUEVO: doble verificación de rol
-            if (login.RolUsuario != "Administrador")
+            if (login.RolUsuario != "Administrador" && login.RolUsuario != "Cajero" && login.RolUsuario != "Cliente")
                 return;
 
-            Application.Run(new frmPrincipal());
+            Application.Run(new frmPrincipal(login.RolUsuario));
         }
     }
 }

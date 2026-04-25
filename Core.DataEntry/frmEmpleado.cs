@@ -9,8 +9,10 @@ namespace Core.DataEntry
 {
     public partial class frmEmpleado : Form
     {
+
         // Variable global para rastrear la fila seleccionada
         private int idUsuarioSeleccionado = 0;
+
 
         public frmEmpleado()
         {

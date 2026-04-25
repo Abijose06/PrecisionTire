@@ -12,14 +12,27 @@ namespace Core.DataEntry
         // Variable para saber qué cliente estamos editando o eliminando
         private int idUsuarioSeleccionado = 0;
 
-        public frmCliente()
+        private readonly string _rol;
+
+        public frmCliente(string rol)
         {
             InitializeComponent();
+            _rol = rol;
         }
 
         private void frmCliente_Load(object sender, EventArgs e)
         {
-            CargarClientes(); // Cargar la tabla al abrir el formulario
+            CargarClientes();
+
+            // "Cliente" solo ve — no puede operar en este form
+            // "Empleado" puede ver todo pero no operar
+            // "Administrador" puede hacer todo
+            bool esAdmin = _rol == "Administrador";
+
+            btnInsertarCliente.Visible = esAdmin;
+            btnEditar.Visible = esAdmin;
+            btnEliminar.Visible = esAdmin;
+            btnLimpiar.Visible = esAdmin;
         }
 
         // --- READ: Leer datos de la BD ---

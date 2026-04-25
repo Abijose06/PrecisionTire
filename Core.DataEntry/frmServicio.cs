@@ -10,15 +10,24 @@ namespace Core.DataEntry
     {
         // Variable para saber qué servicio estamos editando o eliminando
         private int idServicioSeleccionado = 0;
+        // frmServicio.cs — idéntico
+        private readonly string _rol;
 
-        public frmServicio()
+        public frmServicio(string rol)
         {
             InitializeComponent();
+            _rol = rol;
         }
 
         private void frmServicio_Load(object sender, EventArgs e)
         {
-            CargarServicios(); // Cargamos la tabla automáticamente al abrir
+            CargarServicios();
+
+            bool esAdmin = _rol == "Administrador";
+            btnInsertarServicio.Visible = esAdmin;
+            btnEditar.Visible = esAdmin;
+            btnEliminar.Visible = esAdmin;
+            btnLimpiar.Visible = esAdmin;
         }
 
         // --- READ: Leer datos de la BD ---

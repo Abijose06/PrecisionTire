@@ -5,9 +5,26 @@ namespace Core.DataEntry
 {
     public partial class frmPrincipal : Form
     {
-        public frmPrincipal()
+        private readonly string _rol;
+
+        public frmPrincipal(string rol)
         {
             InitializeComponent();
+            _rol = rol;
+
+            if (_rol == "Cliente")
+            {
+                // Solo Producto y Servicio visibles
+                clienteToolStripMenuItem.Visible = false;
+                empleadoToolStripMenuItem.Visible = false;
+                surcursalToolStripMenuItem.Visible = false;
+                vehiculoToolStripMenuItem.Visible = false;
+            }
+            else if (_rol == "Cajero")
+            {
+                // Ve todo, no se oculta nada
+            }
+            // Administrador: ve todo por defecto
         }
 
         // 1. Botón del menú para Empleados
@@ -21,7 +38,7 @@ namespace Core.DataEntry
         // 2. Botón del menú para Clientes
         private void clienteToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            frmCliente frm = new frmCliente();
+            frmCliente frm = new frmCliente(_rol);
             frm.MdiParent = this;
             frm.Show();
         }
@@ -37,7 +54,6 @@ namespace Core.DataEntry
         // 4. Botón del menú para Productos
         private void productoToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            // Verifica si ya hay un frmProducto abierto en la colección de ventanas "hijas"
             foreach (Form formHijo in this.MdiChildren)
             {
                 if (formHijo.GetType() == typeof(frmProducto))
@@ -47,16 +63,14 @@ namespace Core.DataEntry
                 }
             }
 
-            // Si no lo encontró abierto, lo crea normalmente
-            frmProducto frm = new frmProducto();
+            frmProducto frm = new frmProducto(_rol); // ← pasar rol
             frm.MdiParent = this;
             frm.Show();
         }
 
-        // 5. Botón del menú para Servicios
         private void servicioToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            frmServicio frm = new frmServicio();
+            frmServicio frm = new frmServicio(_rol); // ← pasar rol
             frm.MdiParent = this;
             frm.Show();
         }

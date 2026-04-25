@@ -13,7 +13,7 @@ namespace Core.DataEntry
             InitializeComponent();
         }
 
-        public string RolUsuario = "";
+        public string RolUsuario { get; private set; }
         private string UrlIntegracion = ConfigurationManager.AppSettings["UrlIntegracion"];
 
         private async void btnIngresar_Click(object sender, EventArgs e)
@@ -42,11 +42,11 @@ namespace Core.DataEntry
                         var jsonString = await response.Content.ReadAsStringAsync();
                         dynamic usuario = JsonConvert.DeserializeObject(jsonString);
 
-                        // ← NUEVO: verificar rol antes de permitir entrada
-                        if (usuario.Rol != "Administrador")
+                        string rol = usuario.Rol?.ToString();
+                        if (rol != "Administrador" && rol != "Empleado" && rol != "Cliente")
                         {
                             MessageBox.Show(
-                                "Acceso denegado.\nEsta aplicación es exclusiva para Administradores.",
+                                "Acceso denegado.\nSu rol no tiene permiso para acceder a esta aplicación.",
                                 "Sin Permiso",
                                 MessageBoxButtons.OK,
                                 MessageBoxIcon.Stop);
